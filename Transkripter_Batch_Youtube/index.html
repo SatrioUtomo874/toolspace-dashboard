@@ -3,12 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Rencana aplikasi untuk mengumpulkan transkrip dari banyak video YouTube dalam satu alur kerja.">
+  <meta name="theme-color" content="#f7f8f6">
+  <meta name="description" content="Pilih video YouTube dan ambil caption publik yang tersedia. Pemrosesan batch, preview, serta unduhan TXT, JSON, dan SRT.">
   <meta name="toolspace:title" content="YouTube Batch Transcript">
   <meta name="toolspace:category" content="AI & Media">
-  <meta name="toolspace:status" content="building">
-  <meta name="toolspace:status-label" content="Dalam pengembangan">
-  <meta name="toolspace:tag" content="HTML · CSS · JavaScript">
+  <meta name="toolspace:status" content="ready">
+  <meta name="toolspace:status-label" content="Beta · uji coba">
+  <meta name="toolspace:tag" content="YouTube · Transkrip · Batch">
   <meta name="toolspace:symbol" content="▶">
   <meta name="toolspace:art" content="youtube">
   <meta name="toolspace:thumbnail" content="assets/thumbnail.svg">
@@ -18,21 +19,103 @@
   <script src="app.js" defer></script>
 </head>
 <body>
-  <main class="shell">
-    <a class="back" href="/">← Kembali ke Toolspace</a>
-    <section class="panel">
-      <div class="symbol">▶</div>
-      <p class="eyebrow">AI & MEDIA</p>
-      <h1>YouTube Batch Transcript</h1>
-      <p class="lead">Aplikasi untuk menemukan video dari sebuah channel YouTube, memilih beberapa video, lalu melihat dan mengunduh transkripnya.</p>
-      <div class="status"><span></span> Dalam pengembangan</div>
-      <div class="notice">
-        <strong>Frontend belum terhubung ke mesin transkripsi.</strong>
-        <p>Dashboard dan pola folder otomatis sudah disiapkan. Pengambilan daftar video dan transkrip belum aktif karena proses itu membutuhkan endpoint yang berjalan di sisi server/Cloudflare Worker; halaman statis saja tidak dapat menjalankan script Python.</p>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Kembali ke Toolspace">
+      <span class="brand-mark">t.</span>
+      <span>toolspace<span class="brand-dot">.</span></span>
+    </a>
+    <span class="top-label">TOOLS / AI & MEDIA</span>
+  </header>
+
+  <main class="page-shell">
+    <a class="back-link" href="/">← Kembali ke semua tools</a>
+
+    <section class="hero">
+      <div class="hero-copy">
+        <div class="eyebrow"><span class="play-mark">▶</span> YOUTUBE WORKFLOW</div>
+        <h1>YouTube Batch<br><span>Transcript</span></h1>
+        <p class="hero-description">Ambil caption publik dari video YouTube yang mendukungnya. Pilih beberapa video, pantau progres, lalu unduh hasil dalam format TXT, JSON, atau SRT.</p>
+        <div class="status-pill"><span class="status-dot"></span> Beta — tergantung akses caption publik YouTube</div>
       </div>
-      <p class="small">Folder ini menjadi contoh struktur tool. Saat fitur transkripsi sungguhan sudah tersambung dan diuji, ubah metadata <code>toolspace:status</code> menjadi <code>ready</code>.</p>
+      <div class="hero-art" aria-hidden="true">
+        <div class="art-window">
+          <div class="art-window-bar"><i></i><i></i><i></i></div>
+          <div class="art-play">▶</div>
+          <div class="art-lines"><span></span><span></span><span></span></div>
+        </div>
+        <div class="art-caption">TRANSCRIPT<br><strong>READY WHEN YOU ARE</strong></div>
+      </div>
     </section>
-    <footer>Toolspace · Aplikasi web statis</footer>
+
+    <section class="workspace" aria-labelledby="setup-title">
+      <div class="section-heading">
+        <div>
+          <p class="section-kicker">LANGKAH 01</p>
+          <h2 id="setup-title">Pilih sumber video</h2>
+        </div>
+        <span class="step-count">01 <span>/ 03</span></span>
+      </div>
+
+      <form id="channel-form" novalidate>
+        <label for="channel-url">URL channel atau video YouTube</label>
+        <div class="input-row">
+          <div class="input-wrap">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 7.2a2.7 2.7 0 0 0-1.9-1.9C17.4 4.8 12 4.8 12 4.8s-5.4 0-7.1.5A2.7 2.7 0 0 0 3 7.2 28 28 0 0 0 2.5 12 28 28 0 0 0 3 16.8a2.7 2.7 0 0 0 1.9 1.9c1.7.5 7.1.5 7.1.5s5.4 0 7.1-.5a2.7 2.7 0 0 0 1.9-1.9 28 28 0 0 0 .5-4.8 28 28 0 0 0-.5-4.8Z"/><path d="m10 15.3 5-3.3-5-3.3v6.6Z" class="play-cutout"/></svg>
+            <input id="channel-url" name="channel-url" type="text" placeholder="https://www.youtube.com/@nama-channel atau URL video" autocomplete="url" spellcheck="false">
+          </div>
+          <button class="primary-button" type="submit" id="load-videos">Muat video <span aria-hidden="true">↗</span></button>
+        </div>
+        <p class="field-hint">Channel menggunakan feed publik yang umumnya berisi maksimal 15 video terbaru. URL video langsung memuat satu video. Caption yang tidak dapat diakses tidak akan dilewati dengan cara bypass.</p>
+      </form>
+
+      <div class="options-row">
+        <div class="option-block">
+          <label for="language">Bahasa transkrip</label>
+          <select id="language" name="language">
+            <option value="auto">Deteksi otomatis</option>
+            <option value="id">Indonesia</option>
+            <option value="en">Inggris</option>
+            <option value="ja">Jepang</option>
+            <option value="es">Spanyol</option>
+            <option value="ko">Korea</option>
+          </select>
+        </div>
+        <div class="option-note"><span class="note-icon">i</span><span>Gunakan “Deteksi otomatis” untuk memilih track manual jika tersedia, lalu caption otomatis sebagai cadangan. Pilihan bahasa mencoba menggunakan atau menerjemahkan track yang tersedia.</span></div>
+      </div>
+
+      <div class="notice" id="app-notice" role="status" aria-live="polite">
+        <span class="notice-icon">i</span>
+        <div><strong>Memeriksa API Cloudflare…</strong><p>Halaman akan memeriksa endpoint Worker terlebih dahulu.</p></div>
+      </div>
+
+      <section class="video-workspace" id="video-workspace" hidden aria-labelledby="video-list-title">
+        <div class="section-heading compact-heading">
+          <div><p class="section-kicker">LANGKAH 02</p><h2 id="video-list-title">Pilih video</h2></div>
+          <span class="selection-count" id="selection-count">0 dipilih</span>
+        </div>
+        <div class="list-toolbar">
+          <div class="toolbar-left"><button type="button" class="small-button" id="select-all">Pilih semua</button><button type="button" class="small-button" id="select-none">Batal pilih</button></div>
+          <button type="button" class="primary-button" id="start-batch">Mulai transkripsi <span aria-hidden="true">↗</span></button>
+        </div>
+        <div class="batch-summary" id="batch-summary">Belum ada proses berjalan.</div>
+        <div class="progress-track" id="progress-track" hidden><div class="progress-fill" id="progress-fill"></div></div>
+        <div class="video-list" id="video-list"></div>
+        <div class="notice notice-error" id="list-error" role="alert" hidden><span class="notice-icon">!</span><div><strong>Gagal memuat video</strong><p></p></div></div>
+      </section>
+
+      <section class="results-workspace" id="results-workspace" hidden aria-labelledby="results-title">
+        <div class="section-heading compact-heading"><div><p class="section-kicker">LANGKAH 03</p><h2 id="results-title">Hasil transkripsi</h2></div><span class="selection-count" id="results-count">0 selesai</span></div>
+        <div id="results-list" class="results-list"></div>
+      </section>
+    </section>
+
+    <section class="steps-grid" aria-label="Alur kerja yang direncanakan">
+      <article class="mini-step"><span class="mini-number">01</span><div class="mini-icon">⌕</div><h3>Temukan video</h3><p>Ambil daftar video dari channel yang kamu pilih.</p></article>
+      <article class="mini-step"><span class="mini-number">02</span><div class="mini-icon">☷</div><h3>Pilih batch</h3><p>Pilih satu atau beberapa video dan pantau statusnya.</p></article>
+      <article class="mini-step"><span class="mini-number">03</span><div class="mini-icon">↓</div><h3>Unduh hasil</h3><p>Rencananya mendukung TXT, JSON, SRT, serta ZIP.</p></article>
+    </section>
+
+    <footer class="footer"><span>TOOLSPACE LABS</span><span>Beta · caption publik · uji sebelum dibagikan luas</span></footer>
   </main>
 </body>
 </html>

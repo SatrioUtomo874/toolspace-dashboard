@@ -1,16 +1,16 @@
 {
-  "generatedAt": "2026-10-27T09:18:40.175Z",
-  "source": "Tool folders in the repository root; metadata is read from each folder index.html.",
+  "generatedAt": "2026-10-27T09:55:06.344Z",
+  "source": "Tool folder metadata",
   "tools": [
     {
       "id": "transkripter-batch-youtube",
       "folder": "Transkripter_Batch_Youtube",
       "name": "YouTube Batch Transcript",
       "category": "AI & Media",
-      "description": "Rencana aplikasi untuk mengumpulkan transkrip dari banyak video YouTube dalam satu alur kerja.",
-      "status": "building",
-      "statusLabel": "Dalam pengembangan",
-      "tag": "HTML · CSS · JavaScript",
+      "description": "Pilih video YouTube dan ambil caption publik yang tersedia. Pemrosesan batch, preview, serta unduhan TXT, JSON, dan SRT.",
+      "status": "ready",
+      "statusLabel": "Beta · uji coba",
+      "tag": "YouTube · Transkrip · Batch",
       "symbol": "▶",
       "art": "youtube",
       "thumbnail": "/Transkripter_Batch_Youtube/assets/thumbnail.svg",
