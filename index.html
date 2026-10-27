@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f7f4">
+  <meta name="description" content="Satu tempat untuk menemukan dan membuka tools web yang sedang dikembangkan.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Toolspace — Personal Tools Directory">
+  <meta property="og:description" content="Satu tempat untuk menemukan dan membuka tools web dalam satu dashboard.">
+  <meta property="og:image" content="assets/social-preview.svg">
+  <title>Toolspace — Personal Tools Directory</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="style.css">
+  <script src="tools.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <a class="brand" href="#top" aria-label="Toolspace beranda">
+        <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+        <span>toolspace<span class="brand-dot">.</span></span>
+      </a>
+      <nav class="top-nav" aria-label="Navigasi utama">
+        <a class="nav-active" href="#tools">Koleksi tools</a>
+        <a href="#about">Tentang</a>
+      </nav>
+      <a class="github-link" href="https://github.com/new" target="_blank" rel="noreferrer">
+        <span class="github-symbol" aria-hidden="true">↗</span> Kelola project
+      </a>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <div class="eyebrow"><span class="pulse"></span> PERSONAL TOOL DIRECTORY</div>
+          <h1 id="hero-title">Semua tools.<br><span>Satu tempat.</span></h1>
+          <p class="hero-description">Kumpulan aplikasi kecil yang sedang dibuat, dikembangkan, dan siap dipakai. Simpan semua project web dalam satu dashboard yang rapi.</p>
+          <a class="hero-cta" href="#tools">Jelajahi koleksi <span aria-hidden="true">↓</span></a>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <div class="art-orbit orbit-one"></div>
+          <div class="art-orbit orbit-two"></div>
+          <div class="art-panel panel-back"><span class="tiny-line"></span><span class="tiny-line short"></span><span class="tiny-dot"></span></div>
+          <div class="art-panel panel-main">
+            <div class="panel-top"><i></i><i></i><i></i><span>MY TOOLBOX</span></div>
+            <div class="panel-grid"><span class="mini-icon violet">T</span><span class="mini-icon orange">▶</span><span class="mini-icon green">⌘</span><span class="mini-icon blue">↗</span></div>
+            <div class="panel-caption"><b>Build something useful.</b><span>Your projects, organized.</span></div>
+          </div>
+          <div class="art-float float-one">✳ <span>TOOLS</span></div>
+          <div class="art-float float-two"><span class="float-check">✓</span> Organized</div>
+        </div>
+      </section>
+
+      <section class="stats-row" aria-label="Ringkasan koleksi">
+        <div class="stat-item"><span class="stat-label">TOTAL TOOLS</span><strong id="stat-total">—</strong></div>
+        <div class="stat-item"><span class="stat-label">SIAP DIGUNAKAN</span><strong id="stat-ready">—</strong></div>
+        <div class="stat-item"><span class="stat-label">SEDANG DIBUAT</span><strong id="stat-building">—</strong></div>
+        <div class="stat-note"><span class="status-light"></span> Daftar project diperbarui lewat konfigurasi</div>
+      </section>
+
+      <section class="tools-section" id="tools" aria-labelledby="tools-title">
+        <div class="section-heading">
+          <div>
+            <div class="eyebrow muted-eyebrow">THE COLLECTION</div>
+            <h2 id="tools-title">Pilih tools kamu<span class="period">.</span></h2>
+            <p class="section-description">Cari berdasarkan nama atau pilih kategori untuk menyaring koleksi.</p>
+          </div>
+          <label class="search-box">
+            <span aria-hidden="true">⌕</span>
+            <input id="search-input" type="search" placeholder="Cari tools..." autocomplete="off" aria-label="Cari tools">
+            <kbd>/</kbd>
+          </label>
+        </div>
+
+        <div class="filter-row" id="filter-row" aria-label="Filter kategori"></div>
+        <div class="tools-grid" id="tools-grid" aria-live="polite"></div>
+        <div class="empty-state" id="empty-state" hidden>
+          <span class="empty-icon">⌕</span>
+          <h3>Belum ada tools yang cocok</h3>
+          <p>Coba kata kunci lain atau pilih kategori Semua.</p>
+          <button type="button" id="reset-filters">Reset filter</button>
+        </div>
+      </section>
+
+      <section class="add-banner" id="about">
+        <div class="add-icon" aria-hidden="true">＋</div>
+        <div class="add-copy"><h2>Punya tools baru?</h2><p>Tambahkan satu objek di <code>tools.js</code>. Kartu, kategori, dan jumlah di dashboard akan diperbarui otomatis.</p></div>
+        <a href="README.md" class="text-link">Lihat panduan <span aria-hidden="true">↗</span></a>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <a class="brand footer-brand" href="#top"><span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span><span>toolspace<span class="brand-dot">.</span></span></a>
+      <p>Made to keep useful things close.</p>
+      <a href="#top" class="back-top">Kembali ke atas ↑</a>
+    </footer>
+  </div>
+  <noscript><div class="noscript-message">Aktifkan JavaScript di browser untuk menampilkan kartu tools.</div></noscript>
+</body>
+</html>
