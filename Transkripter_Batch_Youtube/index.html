@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Rencana aplikasi untuk mengumpulkan transkrip dari banyak video YouTube dalam satu alur kerja.">
+  <meta name="toolspace:title" content="YouTube Batch Transcript">
+  <meta name="toolspace:category" content="AI & Media">
+  <meta name="toolspace:status" content="building">
+  <meta name="toolspace:status-label" content="Dalam pengembangan">
+  <meta name="toolspace:tag" content="HTML · CSS · JavaScript">
+  <meta name="toolspace:symbol" content="▶">
+  <meta name="toolspace:art" content="youtube">
+  <meta name="toolspace:thumbnail" content="assets/thumbnail.svg">
+  <title>YouTube Batch Transcript</title>
+  <link rel="icon" type="image/svg+xml" href="assets/thumbnail.svg">
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <main class="shell">
+    <a class="back" href="/">← Kembali ke Toolspace</a>
+    <section class="panel">
+      <div class="symbol">▶</div>
+      <p class="eyebrow">AI & MEDIA</p>
+      <h1>YouTube Batch Transcript</h1>
+      <p class="lead">Aplikasi untuk menemukan video dari sebuah channel YouTube, memilih beberapa video, lalu melihat dan mengunduh transkripnya.</p>
+      <div class="status"><span></span> Dalam pengembangan</div>
+      <div class="notice">
+        <strong>Frontend belum terhubung ke mesin transkripsi.</strong>
+        <p>Dashboard dan pola folder otomatis sudah disiapkan. Pengambilan daftar video dan transkrip belum aktif karena proses itu membutuhkan endpoint yang berjalan di sisi server/Cloudflare Worker; halaman statis saja tidak dapat menjalankan script Python.</p>
+      </div>
+      <p class="small">Folder ini menjadi contoh struktur tool. Saat fitur transkripsi sungguhan sudah tersambung dan diuji, ubah metadata <code>toolspace:status</code> menjadi <code>ready</code>.</p>
+    </section>
+    <footer>Toolspace · Aplikasi web statis</footer>
+  </main>
+</body>
+</html>
