@@ -4,16 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f7f4">
-  <meta name="description" content="Satu tempat untuk menemukan dan membuka tools web yang sedang dikembangkan.">
+  <meta name="description" content="Toolspace adalah direktori publik untuk menemukan berbagai tools web sederhana dalam satu tempat.">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Toolspace — Personal Tools Directory">
-  <meta property="og:description" content="Satu tempat untuk menemukan dan membuka tools web dalam satu dashboard.">
-  <meta property="og:image" content="assets/social-preview.svg">
-  <title>Toolspace — Personal Tools Directory</title>
-  <link rel="icon" type="image/svg+xml" href="favicon.svg">
-  <link rel="stylesheet" href="style.css">
-  <script src="tools.js" defer></script>
-  <script src="app.js" defer></script>
+  <meta property="og:title" content="Toolspace — Koleksi Web Tools">
+  <meta property="og:description" content="Temukan tools web untuk produktivitas, data, dan eksperimen digital.">
+  <meta property="og:image" content="/assets/social-preview.svg">
+  <title>Toolspace — Koleksi Web Tools</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
 </head>
 <body>
   <div class="page-shell">
@@ -26,8 +25,8 @@
         <a class="nav-active" href="#tools">Koleksi tools</a>
         <a href="#about">Tentang</a>
       </nav>
-      <a class="github-link" href="https://github.com/new" target="_blank" rel="noreferrer">
-        <span class="github-symbol" aria-hidden="true">↗</span> Kelola project
+      <a class="github-link" href="https://github.com/SatrioUtomo874/toolspace-dashboard" target="_blank" rel="noreferrer noopener">
+        <span class="github-symbol" aria-hidden="true">↗</span> GitHub
       </a>
     </header>
 
@@ -36,7 +35,7 @@
         <div class="hero-copy">
           <div class="eyebrow"><span class="pulse"></span> PERSONAL TOOL DIRECTORY</div>
           <h1 id="hero-title">Semua tools.<br><span>Satu tempat.</span></h1>
-          <p class="hero-description">Kumpulan aplikasi kecil yang sedang dibuat, dikembangkan, dan siap dipakai. Simpan semua project web dalam satu dashboard yang rapi.</p>
+          <p class="hero-description">Koleksi aplikasi web sederhana untuk produktivitas, data, dan eksperimen digital. Buka satu tools dan langsung gunakan dari browser.</p>
           <a class="hero-cta" href="#tools">Jelajahi koleksi <span aria-hidden="true">↓</span></a>
         </div>
         <div class="hero-art" aria-hidden="true">
@@ -56,8 +55,8 @@
       <section class="stats-row" aria-label="Ringkasan koleksi">
         <div class="stat-item"><span class="stat-label">TOTAL TOOLS</span><strong id="stat-total">—</strong></div>
         <div class="stat-item"><span class="stat-label">SIAP DIGUNAKAN</span><strong id="stat-ready">—</strong></div>
-        <div class="stat-item"><span class="stat-label">SEDANG DIBUAT</span><strong id="stat-building">—</strong></div>
-        <div class="stat-note"><span class="status-light"></span> Daftar project diperbarui lewat konfigurasi</div>
+        <div class="stat-item"><span class="stat-label">DALAM PENGEMBANGAN</span><strong id="stat-building">—</strong></div>
+        <div class="stat-note"><span class="status-light"></span> Berbagai tools web dalam satu direktori</div>
       </section>
 
       <section class="tools-section" id="tools" aria-labelledby="tools-title">
@@ -74,7 +73,8 @@
           </label>
         </div>
 
-        <div class="filter-row" id="filter-row" aria-label="Filter kategori"></div>
+        <div class="catalog-state" id="catalog-state" role="status" aria-live="polite">Memuat koleksi tools…</div>
+        <div class="filter-row" id="filter-row" aria-label="Filter kategori" hidden></div>
         <div class="tools-grid" id="tools-grid" aria-live="polite"></div>
         <div class="empty-state" id="empty-state" hidden>
           <span class="empty-icon">⌕</span>
@@ -84,16 +84,18 @@
         </div>
       </section>
 
-      <section class="add-banner" id="about">
-        <div class="add-icon" aria-hidden="true">＋</div>
-        <div class="add-copy"><h2>Punya tools baru?</h2><p>Tambahkan satu objek di <code>tools.js</code>. Kartu, kategori, dan jumlah di dashboard akan diperbarui otomatis.</p></div>
-        <a href="README.md" class="text-link">Lihat panduan <span aria-hidden="true">↗</span></a>
+      <section class="about-section" id="about" aria-labelledby="about-title">
+        <div class="about-mark" aria-hidden="true">✳</div>
+        <div>
+          <h2 id="about-title">Tentang Toolspace</h2>
+          <p>Toolspace mengumpulkan aplikasi web kecil yang dibuat untuk membantu pekerjaan sehari-hari. Setiap tools memiliki halaman dan petunjuknya sendiri.</p>
+        </div>
       </section>
     </main>
 
     <footer class="footer">
       <a class="brand footer-brand" href="#top"><span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span><span>toolspace<span class="brand-dot">.</span></span></a>
-      <p>Made to keep useful things close.</p>
+      <p>Tools praktis, tersedia dari satu tempat.</p>
       <a href="#top" class="back-top">Kembali ke atas ↑</a>
     </footer>
   </div>

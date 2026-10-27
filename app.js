@@ -1,5 +1,4 @@
 (() => {
-  const tools = Array.isArray(window.TOOLS) ? window.TOOLS : [];
   const grid = document.getElementById('tools-grid');
   const filterRow = document.getElementById('filter-row');
   const searchInput = document.getElementById('search-input');
@@ -8,23 +7,19 @@
   const readyStat = document.getElementById('stat-ready');
   const buildingStat = document.getElementById('stat-building');
   const resetButton = document.getElementById('reset-filters');
+  const catalogState = document.getElementById('catalog-state');
+  let tools = [];
   let activeCategory = 'Semua';
 
   const safe = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   })[char]);
 
-  const categoryList = ['Semua', ...new Set(tools.map((tool) => tool.category).filter(Boolean))];
-  totalStat.textContent = String(tools.length).padStart(2, '0');
-  readyStat.textContent = String(tools.filter((tool) => tool.status === 'ready' && tool.url).length).padStart(2, '0');
-  buildingStat.textContent = String(tools.filter((tool) => tool.status !== 'ready' || !tool.url).length).padStart(2, '0');
-
-  filterRow.innerHTML = categoryList.map((category, index) => `
-    <button class="filter-chip${index === 0 ? ' active' : ''}" type="button" data-category="${safe(category)}" aria-pressed="${index === 0 ? 'true' : 'false'}">${safe(category)}</button>
-  `).join('');
-
   function thumbnail(tool) {
     const art = ['youtube', 'trading', 'data', 'dev'].includes(tool.art) ? tool.art : 'default';
+    const image = tool.thumbnail
+      ? `<img class="tool-thumb-image" src="${safe(tool.thumbnail)}" alt="" loading="lazy" onerror="this.remove()">`
+      : '';
     return `
       <div class="tool-thumb thumb-${art}" aria-hidden="true">
         <div class="preview-window">
@@ -32,17 +27,19 @@
           <div class="preview-content"><div class="preview-symbol">${safe(tool.symbol || '✳')}</div><div class="preview-lines"><i></i><i></i><i></i></div></div>
           <div class="preview-bottom"><span></span><span></span><span></span></div>
         </div>
+        ${image}
         <span class="thumb-label">${safe(tool.category || 'TOOL')}</span>
       </div>`;
   }
 
   function card(tool) {
-    const ready = tool.status === 'ready' && /^https?:\/\//i.test(tool.url || '');
+    const ready = tool.status === 'ready' && /^(https?:\/\/|\/)/i.test(tool.url || '');
     const statusClass = ready ? 'ready' : 'building';
-    const label = ready ? (tool.statusLabel || 'Siap digunakan') : (tool.statusLabel || 'Segera hadir');
+    const label = ready ? (tool.statusLabel || 'Siap digunakan') : (tool.statusLabel || 'Dalam pengembangan');
+    const external = /^https?:\/\//i.test(tool.url || '');
     const action = ready
-      ? `<a class="launch-link" href="${safe(tool.url)}" target="_blank" rel="noopener noreferrer">Buka tools <span aria-hidden="true">↗</span></a>`
-      : `<span class="launch-link disabled" aria-label="Tools belum tersedia">Segera <span aria-hidden="true">↗</span></span>`;
+      ? `<a class="launch-link" href="${safe(tool.url)}" ${external ? 'target="_blank" rel="noopener noreferrer"' : ''}>Buka tools <span aria-hidden="true">↗</span></a>`
+      : `<span class="launch-link disabled" aria-label="Tools belum tersedia">Segera hadir</span>`;
     return `
       <article class="tool-card">
         ${thumbnail(tool)}
@@ -55,6 +52,22 @@
       </article>`;
   }
 
+  function renderStats() {
+    totalStat.textContent = String(tools.length).padStart(2, '0');
+    readyStat.textContent = String(tools.filter((tool) => tool.status === 'ready' && tool.url).length).padStart(2, '0');
+    buildingStat.textContent = String(tools.filter((tool) => tool.status !== 'ready' || !tool.url).length).padStart(2, '0');
+  }
+
+  function renderFilters() {
+    const categories = [...new Set(tools.map((tool) => tool.category).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    const categoryList = ['Semua', ...categories];
+    if (!categoryList.includes(activeCategory)) activeCategory = 'Semua';
+    filterRow.innerHTML = categoryList.map((category, index) => `
+      <button class="filter-chip${category === activeCategory ? ' active' : ''}" type="button" data-category="${safe(category)}" aria-pressed="${category === activeCategory ? 'true' : 'false'}">${safe(category)}</button>
+    `).join('');
+    filterRow.hidden = tools.length === 0;
+  }
+
   function render() {
     const query = searchInput.value.trim().toLowerCase();
     const filtered = tools.filter((tool) => {
@@ -63,8 +76,29 @@
       return matchesCategory && searchable.includes(query);
     });
     grid.innerHTML = filtered.map(card).join('');
-    emptyState.hidden = filtered.length > 0;
+    emptyState.hidden = filtered.length > 0 || tools.length === 0;
     grid.hidden = filtered.length === 0;
+  }
+
+  async function loadTools() {
+    try {
+      const response = await fetch('/tools.json', { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Manifest HTTP ${response.status}`);
+      const manifest = await response.json();
+      tools = Array.isArray(manifest.tools) ? manifest.tools : [];
+      tools.sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+      renderStats();
+      renderFilters();
+      render();
+      catalogState.hidden = tools.length > 0;
+      catalogState.textContent = tools.length ? '' : 'Belum ada tools yang ditemukan. Coba tambahkan folder tool yang berisi index.html.';
+      if (tools.length === 0) catalogState.hidden = false;
+    } catch (error) {
+      console.error('Gagal memuat tools.json:', error);
+      catalogState.hidden = false;
+      catalogState.innerHTML = 'Koleksi belum bisa dimuat. Pastikan manifest <code>tools.json</code> sudah dibuat saat build dan muat ulang halaman.';
+      totalStat.textContent = readyStat.textContent = buildingStat.textContent = '—';
+    }
   }
 
   filterRow.addEventListener('click', (event) => {
@@ -82,11 +116,7 @@
   resetButton.addEventListener('click', () => {
     activeCategory = 'Semua';
     searchInput.value = '';
-    filterRow.querySelectorAll('[data-category]').forEach((chip) => {
-      const isActive = chip.dataset.category === 'Semua';
-      chip.classList.toggle('active', isActive);
-      chip.setAttribute('aria-pressed', String(isActive));
-    });
+    renderFilters();
     render();
     searchInput.focus();
   });
@@ -101,5 +131,5 @@
       searchInput.blur();
     }
   });
-  render();
+  loadTools();
 })();
