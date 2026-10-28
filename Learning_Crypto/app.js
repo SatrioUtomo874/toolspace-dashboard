@@ -8,7 +8,7 @@ const $ = (id) => document.getElementById(id);
 const STORE_KEY = 'learning-crypto-replay-v1';
 const CHART_CDN = 'https://unpkg.com/lightweight-charts@5.0.8/dist/lightweight-charts.standalone.production.js';
 const FFLATE_CDN = 'https://cdn.jsdelivr.net/npm/fflate@0.8.2/esm/browser.js';
-const PAIRS = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'ADAUSDT', 'DOGEUSDT', 'LINKUSDT', 'AVAXUSDT', 'TRXUSDT'];
+const PAIRS = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'ADAUSDT', 'DOGEUSDT', 'LINKUSDT', 'AVAXUSDT', 'TRXUSDT', 'LTCUSDT', 'DOTUSDT', 'BCHUSDT', 'ETCUSDT', 'ATOMUSDT', 'NEARUSDT', 'FILUSDT', 'ICPUSDT', 'UNIUSDT', 'AAVEUSDT', 'OPUSDT', 'ARBUSDT', 'APTUSDT', 'SUIUSDT', 'INJUSDT', 'SEIUSDT', 'TIAUSDT', 'RENDERUSDT', 'FETUSDT', 'PEPEUSDT', 'WIFUSDT', 'SHIBUSDT', 'XLMUSDT', 'EOSUSDT', 'VETUSDT', 'GALAUSDT', 'MANAUSDT', 'SANDUSDT', 'ALGOUSDT', 'AXSUSDT', 'DYDXUSDT', 'CRVUSDT', 'LDOUSDT', 'SUSHIUSDT', 'MKRUSDT', 'COMPUSDT', 'SNXUSDT', 'ZECUSDT', 'ZILUSDT', '1000SHIBUSDT', '1000PEPEUSDT', '1000BONKUSDT', 'BONKUSDT', 'ORDIUSDT', 'WLDUSDT', 'JUPUSDT', 'PYTHUSDT', 'STRKUSDT', 'ENAUSDT', 'TONUSDT', 'TAOUSDT', 'KASUSDT', 'PENDLEUSDT', 'RUNEUSDT', 'ARUSDT', 'TRBUSDT', 'EGLDUSDT', 'MATICUSDT', 'POLUSDT'];
 const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 const FIB_LEVELS = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
 const fmtMoney = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -33,6 +33,7 @@ let syncLock = false;
 let loading = false;
 let wasProgrammaticRange = false;
 let resizeObservers = [];
+let editingDrawingId = null;
 
 function createEmptyState() {
   return {
@@ -122,6 +123,10 @@ function setLoading(value) {
   $('next-candle').disabled = value || !state.session;
   $('next-5').disabled = value || !state.session;
   $('next-10').disabled = value || !state.session;
+  // Keep the pair picker usable after starting a session. setSessionUI(true) may
+  // run while loading is still true, so this state must be refreshed here too.
+  $('active-pair').disabled = value || !state.session;
+  $('reset-session').disabled = value || !state.session;
 }
 
 async function getArchiveModule() {
@@ -196,8 +201,9 @@ async function loadArchive(symbol, year, month, progressCallback = null) {
 }
 
 function populateActivePairs() {
-  $('active-pair').innerHTML = PAIRS.map((pair) => `<option value="${pair}">${pair}</option>`).join('');
-  $('setup-pair').innerHTML = PAIRS.map((pair) => `<option value="${pair}">${pair}</option>`).join('');
+  $('known-pairs').innerHTML = PAIRS.map((pair) => `<option value="${pair}"></option>`).join('');
+  if (!$('active-pair').value) $('active-pair').value = state.session?.activeSymbol || 'BTCUSDT';
+  if (!$('setup-pair').value) $('setup-pair').value = state.session?.activeSymbol || 'BTCUSDT';
 }
 
 function updateSetupDateBounds() {
@@ -295,11 +301,19 @@ function ensureCharts() {
   sync(priceChart); sync(volumeChart); sync(rsiChart);
 
   priceChart.subscribeCrosshairMove((param) => {
-    if (param?.time == null) return;
-    const when = timestampToSeconds(param.time);
-    if (Number.isFinite(when)) $('crosshair-time').textContent = `Crosshair: ${formatWIB(when)}`;
-    const bar = param.seriesData?.get(candleSeries);
-    if (bar) $('ohlc-line').textContent = `O ${fmtPrice.format(bar.open)} · H ${fmtPrice.format(bar.high)} · L ${fmtPrice.format(bar.low)} · C ${fmtPrice.format(bar.close)}`;
+    const hasCrosshairTime = param?.time != null;
+    const when = hasCrosshairTime ? timestampToSeconds(param.time) : NaN;
+    const candle = hasCrosshairTime ? param.seriesData?.get(candleSeries) : null;
+    if (Number.isFinite(when)) {
+      $('crosshair-time').textContent = `Crosshair: ${formatWIB(when)}`;
+      const exactBar = displayBars.find((item) => Number(item.time) === when);
+      if (exactBar) updateOhlcLegend(exactBar, true);
+      else if (candle) updateOhlcLegend({ ...candle, time: when, volume: 0 }, true);
+    } else {
+      $('crosshair-time').textContent = getCurrentBar() ? `Waktu replay: ${formatWIB(getCurrentBar().time)}` : 'Arahkan kursor ke candle untuk melihat waktunya';
+      const latestBar = displayBars[displayBars.length - 1];
+      if (latestBar) updateOhlcLegend(latestBar, false);
+    }
   });
   priceChart.timeScale().subscribeVisibleLogicalRangeChange(() => renderDrawings());
 
@@ -334,6 +348,9 @@ function ensureCharts() {
   $('price-plot').addEventListener('pointerup', handlePlotPointerUp, true);
   $('price-plot').addEventListener('pointercancel', handlePlotPointerUp, true);
   $('price-plot').addEventListener('pointerleave', () => { if (!draggingDrawingHandle) { previewPoint = null; renderDrawings(); } });
+  // Double-click or right-click an existing Long/Short box to enter exact prices.
+  $('price-plot').addEventListener('dblclick', handlePositionEditGesture, true);
+  $('price-plot').addEventListener('contextmenu', handlePositionEditGesture, true);
 }
 
 function getCurrentBar() {
@@ -375,6 +392,13 @@ function updateChartData({ fit = false } = {}) {
   chartObjects.rsi30.setData(rsiLines[0]);
   chartObjects.rsi50.setData(rsiLines[1]);
   chartObjects.rsi70.setData(rsiLines[2]);
+  if (fit) {
+    // Pair changes can inherit a manually zoomed price range from the previous symbol.
+    // Reset to auto-scale so the new coin's own price range is visible.
+    try { chartObjects.candleSeries.priceScale().setAutoScale(true); } catch { /* API fallback below. */ }
+    try { chartObjects.priceChart.priceScale('right').setAutoScale(true); } catch { /* Older Lightweight Charts builds may differ. */ }
+    try { chartObjects.candleSeries.priceScale().applyOptions({ autoScale: true }); } catch { /* Not required when setAutoScale exists. */ }
+  }
   const showRsi = $('toggle-rsi').checked;
   chartObjects.rsiSeries.applyOptions({ visible: showRsi });
   chartObjects.rsi30.applyOptions({ visible: showRsi });
@@ -393,6 +417,7 @@ function updateChartData({ fit = false } = {}) {
   }
   const bar = getCurrentBar();
   if (bar) updateHeaderForBar(bar, displayBars, rsi14);
+  if (displayBars.length) updateOhlcLegend(displayBars[displayBars.length - 1], false);
   renderDrawings();
   updateContextCards();
   renderAccount();
@@ -436,6 +461,23 @@ function setTimeframe(timeframe) {
   }
 }
 
+function updateOhlcLegend(bar, hovering = false) {
+  if (!bar) return;
+  const direction = Number(bar.close) >= Number(bar.open) ? 'candle-up' : 'candle-down';
+  const values = `O ${fmtPrice.format(bar.open)} · H ${fmtPrice.format(bar.high)} · L ${fmtPrice.format(bar.low)} · C ${fmtPrice.format(bar.close)} · Vol ${fmtQty.format(bar.volume ?? 0)}`;
+  $('ohlc-line').textContent = values;
+  $('ohlc-line').classList.toggle('candle-up', direction === 'candle-up');
+  $('ohlc-line').classList.toggle('candle-down', direction === 'candle-down');
+  const inlineLegend = $('chart-ohlc-inline');
+  if (inlineLegend) {
+    inlineLegend.textContent = values;
+    inlineLegend.classList.toggle('candle-up', direction === 'candle-up');
+    inlineLegend.classList.toggle('candle-down', direction === 'candle-down');
+    inlineLegend.title = `${hovering ? 'Candle di bawah crosshair' : 'Candle terakhir yang terbuka'} · ${timeframeLabel()} · ${formatWIB(Number(bar.time))} WIB · ${values}`;
+  }
+  $('ohlc-line').title = `${hovering ? 'Candle di bawah crosshair' : 'Candle terakhir yang terbuka'} · ${timeframeLabel()} · ${formatWIB(Number(bar.time))} WIB · ${values}`;
+}
+
 function updateHeaderForBar(bar, timeframeBars, rsiValues) {
   const chartBar = timeframeBars[timeframeBars.length - 1];
   $('chart-symbol-title').textContent = state.session.activeSymbol;
@@ -465,7 +507,7 @@ function updateHeaderForBar(bar, timeframeBars, rsiValues) {
   $('replay-progress').title = `Tombol Next melangkah per candle ${timeframeLabel()}; selama lompatan, setiap candle M5 tetap dievaluasi untuk SL/TP/likuidasi. Candle HTF aktif hanya memakai data yang sudah terungkap.`;
   $('session-year-chip').textContent = `${state.session.year} · ${MONTHS[state.session.month - 1]}`;
   $('active-pair').value = state.session.activeSymbol;
-  $('ohlc-line').textContent = `O ${fmtPrice.format(chartBar.open)} · H ${fmtPrice.format(chartBar.high)} · L ${fmtPrice.format(chartBar.low)} · C ${fmtPrice.format(chartBar.close)} · Vol ${fmtQty.format(chartBar.volume)}`;
+  updateOhlcLegend(chartBar, false);
   const lastRsi = rsiValues[rsiValues.length - 1];
   $('rsi-value').textContent = lastRsi == null ? `RSI 14 · perlu lebih banyak ${timeframeLabel()}` : `RSI 14 · ${lastRsi.toFixed(1)}`;
   $('volume-time-label').textContent = `${state.session.activeSymbol} · ${timeframeLabel()}`;
@@ -637,8 +679,127 @@ function renderDrawings() {
   layer.setAttribute('viewBox', `0 0 ${width} ${height}`);
   const drawings = [...getDrawings()];
   if (previewPoint) drawings.push(previewPoint);
-  layer.innerHTML = drawings.map((drawing) => redrawOneDrawing(drawing, width, height)).join('');
+  layer.innerHTML = drawings.map((drawing) => redrawOneDrawing(drawing, width, height)).join('') + renderTradeEventMarkers(width, height);
 }
+function renderTradeEventMarkers(width, height) {
+  if (!state.session || !chartObjects || !displayBars.length) return '';
+  const symbol = state.session.activeSymbol;
+  const durationSeconds = (TIMEFRAME_MS[activeTimeframe] || INTERVAL_MS) / 1000;
+  const events = [];
+  for (const trade of state.account.trades) {
+    if (trade.symbol !== symbol) continue;
+    events.push({ time: trade.entryTime, price: trade.entryPrice, side: trade.side, label: trade.side === 'long' ? 'BUY / LONG' : 'SELL / SHORT', kind: 'entry' });
+    const reason = String(trade.exitReason || '').toUpperCase();
+    const label = reason.includes('TP') ? 'TP HIT' : reason.includes('SL') ? 'SL HIT' : reason.includes('LIQ') ? 'LIQUIDATED' : 'CLOSED';
+    const kind = reason.includes('TP') ? 'tp' : reason.includes('SL') ? 'sl' : reason.includes('LIQ') ? 'liq' : 'close';
+    events.push({ time: trade.exitTime, price: trade.exitPrice, side: trade.side, label, kind });
+  }
+  for (const position of state.account.positions) {
+    if (position.symbol !== symbol) continue;
+    events.push({ time: position.entryTime, price: position.entryPrice, side: position.side, label: position.side === 'long' ? 'BUY / LONG' : 'SELL / SHORT', kind: 'entry' });
+  }
+  const markup = [];
+  const seen = new Set();
+  for (const item of events) {
+    if (!Number.isFinite(Number(item.time)) || !Number.isFinite(Number(item.price))) continue;
+    const bucketTime = Math.floor(Number(item.time) / durationSeconds) * durationSeconds;
+    const key = `${bucketTime}:${item.price}:${item.label}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const x = chartObjects.priceChart.timeScale().timeToCoordinate(bucketTime);
+    const y = chartObjects.candleSeries.priceToCoordinate(Number(item.price));
+    if (!Number.isFinite(x) || !Number.isFinite(y) || x < 2 || x > width - 72 || y < -12 || y > height + 12) continue;
+    const color = item.kind === 'entry' ? (item.side === 'long' ? '#49d7a4' : '#f1717c') : item.kind === 'tp' ? '#49d7a4' : item.kind === 'sl' || item.kind === 'liq' ? '#f1717c' : '#d5e0eb';
+    const direction = item.kind === 'entry' ? (item.side === 'long' ? 1 : -1) : (item.side === 'long' ? -1 : 1);
+    const labelY = Math.max(12, Math.min(height - 5, y + direction * 15));
+    markup.push(svgLine(x, y, x, labelY + (direction > 0 ? -4 : 4), color, 1, '2 2'));
+    markup.push(svgCircle(x, y, 4, color));
+    markup.push(svgText(Math.min(width - 72, x + 6), labelY, `${item.label} ${fmtPrice.format(item.price)}`, color));
+  }
+  return markup.join('');
+}
+
+function findPositionDrawingAtPointer(event) {
+  if (!chartObjects || !state.session) return null;
+  const bounds = $('price-plot').getBoundingClientRect();
+  const x = event.clientX - bounds.left;
+  const y = event.clientY - bounds.top;
+  const drawings = [...getDrawings()].reverse();
+  for (const drawing of drawings) {
+    if (!['long', 'short'].includes(drawing.type) || !validPositionDrawing(drawing.type, drawing.points)) continue;
+    const p1 = coordForPoint(drawing.points[0]);
+    if (!p1) continue;
+    const x2 = positionDrawingEndX(drawing, p1.x, bounds.width);
+    const yValues = drawing.points.map((point) => chartObjects.candleSeries.priceToCoordinate(Number(point.price))).filter(Number.isFinite);
+    if (yValues.length < 3) continue;
+    const top = Math.min(...yValues) - 14;
+    const bottom = Math.max(...yValues) + 14;
+    if (x >= p1.x - 12 && x <= x2 + 12 && y >= top && y <= bottom) return drawing;
+    for (const point of drawing.points) {
+      const c = coordForPoint(point);
+      if (c && Math.hypot(c.x - x, c.y - y) <= 18) return drawing;
+    }
+  }
+  return null;
+}
+
+function openDrawingEditor(drawing) {
+  if (!drawing || !['long', 'short'].includes(drawing.type)) return;
+  editingDrawingId = drawing.id;
+  const [entry, stop, target] = drawing.points;
+  $('drawing-editor-title').textContent = `Edit ${drawing.type === 'long' ? 'Long' : 'Short'} Position`;
+  $('drawing-editor-description').textContent = `Atur harga ENTRY, SL, dan TP secara presisi. R:R saat ini ${calcPositionMetrics(drawing.type, entry.price, stop.price, target.price).rr.toFixed(2)}R.`;
+  $('drawing-edit-entry').value = String(Number(Number(entry.price).toPrecision(12)));
+  $('drawing-edit-sl').value = String(Number(Number(stop.price).toPrecision(12)));
+  $('drawing-edit-tp').value = String(Number(Number(target.price).toPrecision(12)));
+  $('drawing-editor-error').hidden = true;
+  $('drawing-editor-error').textContent = '';
+  const dialog = $('drawing-editor');
+  if (typeof dialog.showModal === 'function') dialog.showModal();
+  else dialog.setAttribute('open', '');
+  $('drawing-edit-entry').focus();
+  $('drawing-edit-entry').select();
+}
+
+function handlePositionEditGesture(event) {
+  if (!state.session || loading || activeTool !== 'cursor') return;
+  const drawing = findPositionDrawingAtPointer(event);
+  if (!drawing) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  openDrawingEditor(drawing);
+}
+
+function saveDrawingEditor() {
+  const drawing = getDrawings().find((item) => item.id === editingDrawingId);
+  if (!drawing) {
+    $('drawing-editor').close?.();
+    return;
+  }
+  const values = ['drawing-edit-entry', 'drawing-edit-sl', 'drawing-edit-tp'].map((id) => Number($(id).value));
+  if (values.some((value) => !Number.isFinite(value) || value <= 0)) {
+    $('drawing-editor-error').textContent = 'Semua harga harus berupa angka lebih besar dari nol.';
+    $('drawing-editor-error').hidden = false;
+    return;
+  }
+  const points = drawing.points.map((point, index) => ({ ...point, price: values[index] }));
+  if (!validPositionDrawing(drawing.type, points)) {
+    $('drawing-editor-error').textContent = drawing.type === 'long'
+      ? 'Long harus memiliki SL < Entry < TP.'
+      : 'Short harus memiliki TP < Entry < SL.';
+    $('drawing-editor-error').hidden = false;
+    return;
+  }
+  drawing.points = points;
+  copyPositionDrawingToOrder(drawing, { notify: false });
+  saveDrawings();
+  renderDrawings();
+  $('drawing-editor').close?.();
+  editingDrawingId = null;
+  const metrics = calcPositionMetrics(drawing.type, points[0].price, points[1].price, points[2].price);
+  toast(`Level ${drawing.type.toUpperCase()} diperbarui · R:R 1:${metrics.rr.toFixed(2)}. Ticket SL/TP ikut diperbarui.`, 'success', 4500);
+}
+
 function pointAtPointer(event) {
   if (!chartObjects || !displayBars.length) return null;
   const box = $('price-plot').getBoundingClientRect();
@@ -872,7 +1033,7 @@ function handlePlotPointerUp(event) {
     copyPositionDrawingToOrder(drawing, { notify: false });
     toast(`Level ${drawing.type.toUpperCase()} diperbarui. R:R 1:${calcPositionMetrics(drawing.type, drawing.points[0].price, drawing.points[1].price, drawing.points[2].price).rr.toFixed(2)}.`, 'success');
   }
-  $('drawing-hint').textContent = 'Cursor aktif · tarik ENTRY / SL / TP untuk mengubah level, atau grip ↔ di ujung kanan untuk mengubah lebar gambar.';
+  $('drawing-hint').textContent = 'Cursor aktif · tarik level / grip ↔; double-click atau klik kanan gambar untuk edit harga.';
   renderDrawings();
   saveDrawings();
 }
@@ -882,7 +1043,7 @@ function finishDrawing() {
   previewPoint = null;
   activeTool = 'cursor';
   document.querySelectorAll('[data-tool]').forEach((button) => button.classList.toggle('active', button.dataset.tool === activeTool));
-  $('drawing-hint').textContent = 'Cursor aktif · tarik ENTRY / SL / TP untuk mengubah level, atau grip ↔ di ujung kanan untuk mengubah lebar gambar.';
+  $('drawing-hint').textContent = 'Cursor aktif · tarik level / grip ↔; double-click atau klik kanan gambar untuk edit harga.';
   renderDrawings();
   saveDrawings();
 }
@@ -894,7 +1055,7 @@ function chooseDrawingTool(tool) {
   draggingDrawingHandle = null;
   document.querySelectorAll('[data-tool]').forEach((button) => button.classList.toggle('active', button.dataset.tool === tool));
   const hints = {
-    cursor: 'Cursor · tarik ENTRY / SL / TP untuk mengubah level, atau grip ↔ di ujung kanan untuk mengatur lebar gambar.',
+    cursor: 'Cursor · tarik level / grip ↔; double-click atau klik kanan gambar Long/Short untuk edit harga.',
     horizontal: 'Klik chart untuk menaruh garis horizontal.',
     trend: 'Klik dua titik untuk menggambar trend line.',
     fib: 'Klik swing pertama lalu swing kedua untuk Fibonacci.',
@@ -935,6 +1096,11 @@ function chooseStartIndex(bars, mode, specificTime) {
 
 async function startNewSession(config) {
   if (loading) return;
+  config.symbol = String(config.symbol || '').trim().toUpperCase().replace(/\s+/g, '');
+  if (!sanitizePair(config.symbol)) {
+    setStartMessage('Pair harus berupa simbol USDⓈ-M Futures yang berakhiran USDT, misalnya BTCUSDT atau SOLUSDT.', 'error');
+    return;
+  }
   setLoading(true);
   setStartMessage('Menyiapkan arsip historis Binance…');
   try {
@@ -1021,8 +1187,14 @@ async function resumePreviousSession() {
 }
 
 async function switchPair(symbol) {
+  symbol = String(symbol || '').trim().toUpperCase().replace(/\s+/g, '');
   if (!state.session || loading || symbol === state.session.activeSymbol) return;
-  if (!sanitizePair(symbol) || !PAIRS.includes(symbol)) return;
+  if (!sanitizePair(symbol)) {
+    $('active-pair').value = state.session.activeSymbol;
+    toast('Masukkan simbol USDⓈ-M Futures yang berakhiran USDT, misalnya LINKUSDT.', 'error', 5000);
+    return;
+  }
+  $('active-pair').value = symbol;
   const oldSymbol = state.session.activeSymbol;
   const oldIndex = activeIndex;
   const oldBars = activeBars;
@@ -1286,9 +1458,10 @@ function placeOrder(event) {
   updateEquityPoint(bar.time);
   persistState();
   renderAccount();
-  setOrderMessage(`${preview.side === 'long' ? 'Long' : 'Short'} ${position.symbol} dibuka pada ${formatWIB(bar.time)}. Ini posisi virtual, bukan order Binance.`, 'success');
-  toast(`Posisi ${preview.side.toUpperCase()} ${position.symbol} dibuka.`, 'success');
+  setOrderMessage(`${preview.side === 'long' ? 'BUY / LONG' : 'SELL / SHORT'} ${position.symbol} dibuka pada ${formatWIB(bar.time)}. Ini posisi virtual, bukan order Binance.`, 'success');
+  toast(`Posisi ${preview.side === 'long' ? 'BUY / LONG' : 'SELL / SHORT'} ${position.symbol} dibuka.`, 'success');
   updateOrderPreview();
+  renderDrawings();
 }
 
 function closePosition(positionId, referencePrice, reason, time = state.session?.cursorTime, liquidation = false) {
@@ -1327,6 +1500,7 @@ function manualClosePosition(positionId) {
   persistState();
   renderAccount();
   updateOrderPreview();
+  renderDrawings();
 }
 
 function renderAccount() {
@@ -1492,7 +1666,14 @@ function initializeUI() {
   $('resume-session').hidden = !state.session;
   if (state.session) $('resume-session').textContent = `Lanjutkan ${state.session.activeSymbol} · ${state.session.year}-${month2(state.session.month)}`;
   $('resume-session').addEventListener('click', resumePreviousSession);
-  $('active-pair').addEventListener('change', (event) => switchPair(event.target.value));
+  $('active-pair').addEventListener('change', (event) => {
+    const normalized = String(event.target.value || '').trim().toUpperCase().replace(/\s+/g, '');
+    event.target.value = normalized;
+    switchPair(normalized);
+  });
+  $('active-pair').addEventListener('keydown', (event) => { if (event.key === 'Enter') { event.preventDefault(); event.target.blur(); } });
+  $('setup-pair').addEventListener('change', (event) => { event.target.value = String(event.target.value || '').trim().toUpperCase().replace(/\s+/g, ''); });
+  $('setup-pair').addEventListener('keydown', (event) => { if (event.key === 'Enter') { event.preventDefault(); event.target.blur(); } });
   $('next-candle').addEventListener('click', () => stepForward(1));
   $('next-5').addEventListener('click', () => stepForward(5));
   $('next-10').addEventListener('click', () => stepForward(10));
@@ -1525,6 +1706,11 @@ function initializeUI() {
     redoStack = [];
     saveDrawings(); renderDrawings(); toast('Gambar chart dihapus. Statistik tidak berubah.', 'success');
   });
+  $('save-drawing-edit').addEventListener('click', saveDrawingEditor);
+  $('drawing-editor-form').addEventListener('submit', (event) => { event.preventDefault(); saveDrawingEditor(); });
+  $('cancel-drawing-edit').addEventListener('click', () => { editingDrawingId = null; $('drawing-editor').close?.(); });
+  $('cancel-drawing-edit-bottom').addEventListener('click', () => { editingDrawingId = null; $('drawing-editor').close?.(); });
+  $('drawing-editor').addEventListener('click', (event) => { if (event.target === $('drawing-editor')) { editingDrawingId = null; $('drawing-editor').close?.(); } });
   document.addEventListener('keydown', (event) => {
     const target = event.target;
     const editing = target && (target.matches('input, select, textarea') || target.isContentEditable);

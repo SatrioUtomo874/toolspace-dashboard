@@ -45,7 +45,11 @@ svg { display: block; }
 .brand-copy strong span { color: var(--green); }
 .brand-copy small { color: var(--muted-2); font-size: 9px; font-weight: 800; letter-spacing: 1.25px; }
 .market-head, .topbar-right { display: flex; align-items: center; gap: 9px; min-width: 0; }
-.pair-select { min-width: 125px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-2); color: var(--text); font-weight: 800; padding: 9px 30px 9px 10px; }
+.market-head { position: relative; z-index: 22; }
+.pair-select { width: 150px; min-width: 125px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-2); color: var(--text); font-weight: 800; padding: 9px 10px; text-transform: uppercase; position: relative; z-index: 23; pointer-events: auto; }
+.pair-select:disabled { opacity: .55; cursor: wait; }
+.ohlc-line.candle-up { color: #49d7a4; }
+.ohlc-line.candle-down { color: #f1717c; }
 .market-chip, .timeframe-chip, .subtle-chip, .timezone-chip, .virtual-pill, .historical-pill, .leverage-cap { display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; border: 1px solid var(--border); background: var(--surface-2); border-radius: 7px; padding: 6px 8px; color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .25px; }
 .timeframe-chip { color: var(--green-2); background: rgba(73,215,164,.08); border-color: rgba(73,215,164,.2); }
 .timeframe-switcher { display: inline-flex; align-items: center; gap: 2px; padding: 3px; border: 1px solid var(--border); border-radius: 9px; background: #0c1219; flex: 0 0 auto; }
@@ -92,6 +96,10 @@ svg { display: block; }
 input[type="checkbox"] { accent-color: var(--green); width: 13px; height: 13px; margin: 0; }
 .ema20-dot, .ema50-dot { width: 13px; height: 2px; display: inline-block; background: var(--yellow); }
 .ema50-dot { background: var(--purple); }
+.price-heading-label { flex: 0 0 auto; }
+.chart-ohlc-inline { color: #9aaabd; font-size: 9px; font-weight: 650; letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 150px; flex: 1 1 260px; font-variant-numeric: tabular-nums; }
+.chart-ohlc-inline.candle-up { color: #49d7a4; }
+.chart-ohlc-inline.candle-down { color: #f1717c; }
 .pane-time { color: #b8c4d1; font-size: 10px; font-weight: 600; letter-spacing: 0; white-space: nowrap; font-variant-numeric: tabular-nums; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .price-card { overflow: visible; }
 .chart-plot { position: relative; width: 100%; height: 430px; min-height: 280px; background: #0e141c; }
@@ -276,6 +284,7 @@ kbd { display: inline-block; min-width: 22px; text-align: center; border: 1px so
   .tool-button.compact em { display: none; }
   .drawing-hint { display: none; }
   .pane-heading { padding: 8px 9px; gap: 6px; font-size: 9px; flex-wrap: wrap; }
+  .chart-ohlc-inline { order: 3; flex: 1 1 100%; min-width: 0; }
   .indicator-toggles { gap: 6px; }
   .indicator-toggles label { font-size: 9px; }
   .pane-time { font-size: 9px; }
@@ -321,4 +330,21 @@ kbd { display: inline-block; min-width: 22px; text-align: center; border: 1px so
   .ema20-dot, .ema50-dot { width: 8px; }
   .chart-plot { height: 305px; }
   .welcome-copy h1 { font-size: 24px; }
+}
+
+
+/* Modal editor for exact Entry / SL / TP price levels */
+.drawing-editor { width: min(480px, calc(100vw - 24px)); max-width: none; border: 1px solid var(--border); border-radius: 16px; padding: 0; color: var(--text); background: #111720; box-shadow: var(--shadow); }
+.drawing-editor::backdrop { background: rgba(2, 6, 12, .72); backdrop-filter: blur(4px); }
+.drawing-editor form { padding: 20px; display: flex; flex-direction: column; gap: 13px; }
+.drawing-editor-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.drawing-editor-head h2 { margin: 3px 0 0; font-size: 18px; }
+.drawing-editor label { display: flex; flex-direction: column; gap: 6px; color: var(--muted); font-size: 11px; font-weight: 700; }
+.drawing-editor input { width: 100%; min-width: 0; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); color: var(--text); padding: 10px 11px; font-variant-numeric: tabular-nums; }
+.drawing-editor-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 3px; }
+.drawing-editor .inline-message[hidden] { display: none; }
+@media (max-width: 650px) {
+  .drawing-editor form { padding: 15px; }
+  .drawing-editor-actions .button { flex: 1; }
+  .pair-select { width: 100%; min-width: 100px; }
 }

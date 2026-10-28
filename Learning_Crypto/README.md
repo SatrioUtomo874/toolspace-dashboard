@@ -85,3 +85,15 @@ These tests cover CSV parsing, timestamp normalization, M5-to-M15/H1/D1 aggregat
 - Add session import and resume recovery for open positions if an archive is no longer available.
 - Verify paper-trade math against independent fixtures and add integration/browser tests at 320, 360, 390, 768, and 1024 px.
 - Use lower-timeframe data to improve SL/TP ordering and liquidation/funding realism only after a clear source and storage plan is available.
+
+
+## UI fixes (2026-10-28)
+
+- Pair picker is searchable: choose a common pair from suggestions or type a USDⓈ-M Futures symbol ending in `USDT`. Unsupported/not-listed archives return an explicit fetch error.
+- Fixed pair selector remaining disabled after a new session starts.
+- Reset the price scale to auto-scale when switching pair/timeframe/session so a previously zoomed price axis does not hide the new market's candles.
+- OHLCV legend follows the candle under the crosshair and resets to the latest revealed candle when the pointer leaves.
+- Double-click or right-click a Long/Short drawing (with Cursor tool selected) to edit Entry, SL, and TP in a numeric dialog. Inputs validate the correct price order and update the order ticket SL/TP.
+- Chart adds BUY/LONG or SELL/SHORT entry labels and TP HIT / SL HIT / LIQUIDATED / CLOSED labels for simulated trades on the active pair.
+
+These fixes passed JavaScript syntax checks and the existing core unit tests. Direct browser interaction and live Binance archive access still need to be verified after deployment.

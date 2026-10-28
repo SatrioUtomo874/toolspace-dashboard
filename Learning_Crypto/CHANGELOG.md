@@ -15,3 +15,12 @@
 - `node --check core.js`: passed
 - `npm test`: 15 passed, 0 failed
 - No live Binance archive integration or browser pointer-drag test was completed in this environment.
+
+## 2026-10-28 — Pair, price scale, OHLC and trade labels
+
+- Fixed pair input being left disabled after starting a session.
+- Replaced the fixed-only active pair selection with a searchable datalist plus free-form USDⓈ-M symbol entry. Existing month archive availability is still validated by fetch response.
+- Force price-scale auto-scaling when fitting a changed pair/session/timeframe.
+- OHLCV legend is visible in the price-chart pane header, follows the hovered candle, and resets to latest revealed bar when crosshair leaves.
+- Added numeric Entry/SL/TP editor for Long/Short drawings via double-click or right-click on the drawing box.
+- Added on-chart BUY/LONG and SELL/SHORT entry labels plus TP HIT, SL HIT, LIQUIDATED, and CLOSED exit markers.
