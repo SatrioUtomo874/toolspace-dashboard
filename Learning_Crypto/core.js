@@ -10,6 +10,25 @@ export const TIMEFRAME_MS = Object.freeze({
 });
 
 /**
+ * Return the next UTC-aligned target timestamp after advancing `count` candles
+ * in the selected chart timeframe. Execution code must still process every
+ * underlying M5 bar between the current cursor and this target.
+ */
+export function nextReplayTargetSeconds(cursorTimeSeconds, timeframe = '5m', count = 1) {
+  const durationMs = TIMEFRAME_MS[timeframe];
+  const cursorSeconds = Number(cursorTimeSeconds);
+  const steps = Number(count);
+  if (!durationMs) throw new Error(`Unsupported timeframe: ${timeframe}`);
+  if (!Number.isFinite(cursorSeconds)) throw new Error('Replay cursor time must be finite.');
+  if (!Number.isInteger(steps) || steps < 1 || steps > 1000) {
+    throw new Error('Replay candle count must be an integer between 1 and 1000.');
+  }
+  const cursorMs = cursorSeconds * 1000;
+  const bucketStart = Math.floor(cursorMs / durationMs) * durationMs;
+  return Math.floor((bucketStart + durationMs * steps) / 1000);
+}
+
+/**
  * Aggregate already-available Binance 5m bars into a larger timeframe.
  * Buckets follow UTC epoch boundaries (matching Binance kline boundaries).
  * Input must contain only bars revealed up to the replay cursor; the active HTF

@@ -61,8 +61,8 @@
           <button type="button" class="tool-button" data-tool="horizontal" title="Garis horizontal"><span>―</span><em>H-Line</em></button>
           <button type="button" class="tool-button" data-tool="trend" title="Trend line"><span>／</span><em>Trend</em></button>
           <button type="button" class="tool-button" data-tool="fib" title="Fibonacci retracement"><span>⌁</span><em>Fibonacci</em></button>
-          <button type="button" class="tool-button" data-tool="long" title="Long Position: klik ENTRY → SL → TP; R:R bebas, level bisa digeser"><span class="long-icon">↗</span><em>Long</em></button>
-          <button type="button" class="tool-button" data-tool="short" title="Short Position: klik ENTRY → SL → TP; R:R bebas, level bisa digeser"><span class="short-icon">↘</span><em>Short</em></button>
+          <button type="button" class="tool-button" data-tool="long" title="Long Position: klik ENTRY → SL → TP; seret handle harga atau grip ↔ untuk mengubah lebar gambar"><span class="long-icon">↗</span><em>Long</em></button>
+          <button type="button" class="tool-button" data-tool="short" title="Short Position: klik ENTRY → SL → TP; seret handle harga atau grip ↔ untuk mengubah lebar gambar"><span class="short-icon">↘</span><em>Short</em></button>
           <span class="toolbar-divider"></span>
           <button type="button" id="undo-drawing" class="tool-button compact" title="Undo gambar"><span>↶</span><em>Undo</em></button>
           <button type="button" id="redo-drawing" class="tool-button compact" title="Redo gambar"><span>↷</span><em>Redo</em></button>
@@ -90,13 +90,13 @@
           <div class="replay-clock"><span class="console-label">REPLAY TIME · WIB</span><strong id="replay-time">Belum ada sesi</strong><small id="replay-progress">Candle 0 dari 0</small></div>
           <div class="replay-actions">
             <button id="reset-session" type="button" class="button button-secondary"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11a9 9 0 1 1 2.6 6.4M3 4v7h7"/></svg> Reset sesi</button>
-            <button id="next-5" type="button" class="button button-secondary" disabled title="Buka lima candle M5 berikutnya">Next 5 M5</button>
-            <button id="next-10" type="button" class="button button-secondary" disabled title="Buka sepuluh candle M5 berikutnya">Next 10 M5</button>
-            <button id="next-candle" type="button" class="button button-primary" disabled title="Buka candle M5 berikutnya">Next M5 Candle <span>→</span></button>
+            <button id="next-5" type="button" class="button button-secondary" disabled title="Buka lima candle pada timeframe yang dipilih">Next 5 M5</button>
+            <button id="next-10" type="button" class="button button-secondary" disabled title="Buka sepuluh candle pada timeframe yang dipilih">Next 10 M5</button>
+            <button id="next-candle" type="button" class="button button-primary" disabled title="Buka candle pada timeframe yang dipilih">Next M5 Candle <span>→</span></button>
           </div>
         </div>
 
-        <div class="disclosure-note"><strong>Replay edukasi.</strong> Data dasar menggunakan candle M5 historis Binance. M15, H1, H4, dan D1 dihitung dari candle M5 yang sudah terungkap sampai titik replay; candle timeframe aktif bisa masih berjalan. Data mentah diunduh ke browser dan dapat diperiksa lewat DevTools. Tidak ada order sungguhan.</div>
+        <div class="disclosure-note"><strong>Replay edukasi.</strong> Tombol Next mengikuti timeframe yang sedang dibuka: M5, M15, H1, H4, atau D1. Saat melompat timeframe lebih tinggi, setiap candle M5 di antaranya tetap diproses berurutan untuk mengevaluasi posisi simulasi. Candle timeframe aktif hanya memakai data yang sudah diungkap. Data mentah diunduh ke browser dan dapat diperiksa lewat DevTools. Tidak ada order sungguhan.</div>
       </section>
 
       <aside class="side-column" aria-label="Trading simulator and stats">
@@ -138,7 +138,7 @@
           <div id="trade-journal" class="trade-journal"><div class="empty-list">Hasil trade akan tercatat otomatis di sini.</div></div>
         </section>
 
-        <section class="panel-card help-card"><span class="eyebrow">SHORTCUTS</span><div><kbd>N</kbd> Next M5 candle</div><div><kbd>Esc</kbd> Batalkan alat gambar</div><div><kbd>Ctrl</kbd> + <kbd>Z</kbd> Undo gambar</div><a href="https://data.binance.vision/" target="_blank" rel="noreferrer">Sumber arsip historis Binance ↗</a></section>
+        <section class="panel-card help-card"><span class="eyebrow">SHORTCUTS</span><div><kbd>N</kbd> Next candle pada timeframe yang sedang dipilih</div><div><kbd>Esc</kbd> Batalkan alat gambar</div><div><kbd>Ctrl</kbd> + <kbd>Z</kbd> Undo gambar</div><a href="https://data.binance.vision/" target="_blank" rel="noreferrer">Sumber arsip historis Binance ↗</a></section>
       </aside>
     </main>
 

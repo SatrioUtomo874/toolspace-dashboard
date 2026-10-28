@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseKlineCsv, aggregateCandles, TIMEFRAME_MS, ema, rsi, findIndexAtOrBefore, findIndexAtOrAfter, calcTradeStats, calcPnl, calcPositionMetrics, estimateLiquidation, formatWIB, sanitizePair } from '../core.js';
+import { parseKlineCsv, aggregateCandles, TIMEFRAME_MS, ema, rsi, findIndexAtOrBefore, findIndexAtOrAfter, calcTradeStats, calcPnl, calcPositionMetrics, estimateLiquidation, formatWIB, sanitizePair, nextReplayTargetSeconds } from '../core.js';
 
 test('parseKlineCsv skips a header and normalizes timestamps', () => {
   const csv = 'open_time,open,high,low,close,volume,close_time\n1704067200000,100,105,99,103,12,1704067499999\n1704067500000,103,104,101,102,15,1704067799999';
@@ -138,4 +138,20 @@ test('position drawing rejects SL/TP on the wrong side of entry', () => {
   assert.equal(calcPositionMetrics('long', 100, 95, 99).valid, false);
   assert.equal(calcPositionMetrics('short', 100, 99, 90).valid, false);
   assert.equal(calcPositionMetrics('short', 100, 105, 101).valid, false);
+});
+
+
+test('replay step target follows selected timeframe UTC candle boundaries', () => {
+  const cursor = Date.UTC(2024, 0, 1, 9, 20, 0) / 1000;
+  assert.equal(nextReplayTargetSeconds(cursor, '5m', 1), Date.UTC(2024, 0, 1, 9, 25, 0) / 1000);
+  assert.equal(nextReplayTargetSeconds(cursor, '15m', 1), Date.UTC(2024, 0, 1, 9, 30, 0) / 1000);
+  assert.equal(nextReplayTargetSeconds(cursor, '1h', 1), Date.UTC(2024, 0, 1, 10, 0, 0) / 1000);
+  assert.equal(nextReplayTargetSeconds(cursor, '4h', 1), Date.UTC(2024, 0, 1, 12, 0, 0) / 1000);
+  assert.equal(nextReplayTargetSeconds(cursor, '1d', 1), Date.UTC(2024, 0, 2, 0, 0, 0) / 1000);
+  assert.equal(nextReplayTargetSeconds(cursor, '1h', 5), Date.UTC(2024, 0, 1, 14, 0, 0) / 1000);
+});
+
+test('replay step target rejects unsupported timeframes and invalid counts', () => {
+  assert.throws(() => nextReplayTargetSeconds(1700000000, '2h', 1), /Unsupported timeframe/);
+  assert.throws(() => nextReplayTargetSeconds(1700000000, '1h', 0), /integer between 1 and 1000/);
 });

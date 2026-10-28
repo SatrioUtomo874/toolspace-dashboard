@@ -1,7 +1,7 @@
 import {
   TIMEZONE, INTERVAL_MS, TIMEFRAME_MS, DEFAULT_BALANCE, DEFAULT_FEE_BPS, DEFAULT_SLIPPAGE_BPS,
   parseKlineCsv, aggregateCandles, ema, rsi, findIndexAtOrBefore, findIndexAtOrAfter,
-  formatWIB, formatAxisTime, calcTradeStats, calcPnl, calcPositionMetrics, estimateLiquidation, sanitizePair,
+  formatWIB, formatAxisTime, calcTradeStats, calcPnl, calcPositionMetrics, estimateLiquidation, sanitizePair, nextReplayTargetSeconds,
 } from './core.js';
 
 const $ = (id) => document.getElementById(id);
@@ -403,12 +403,23 @@ function timeframeLabel(timeframe = activeTimeframe) {
   return ({ '5m': 'M5', '15m': 'M15', '1h': 'H1', '4h': 'H4', '1d': 'D1' })[timeframe] || timeframe.toUpperCase();
 }
 
+function updateReplayStepLabels() {
+  const label = timeframeLabel();
+  $('next-candle').innerHTML = `Next ${label} Candle <span>→</span>`;
+  $('next-5').textContent = `Next 5 ${label}`;
+  $('next-10').textContent = `Next 10 ${label}`;
+  $('next-candle').title = `Majukan satu candle ${label}. Semua candle M5 di antaranya tetap diproses untuk evaluasi posisi.`;
+  $('next-5').title = `Majukan lima candle ${label}. Semua candle M5 di antaranya tetap diproses.`;
+  $('next-10').title = `Majukan sepuluh candle ${label}. Semua candle M5 di antaranya tetap diproses.`;
+}
+
 function updateTimeframeButtons() {
   document.querySelectorAll('[data-timeframe]').forEach((button) => {
     const selected = button.dataset.timeframe === activeTimeframe;
     button.classList.toggle('active', selected);
     button.setAttribute('aria-pressed', String(selected));
   });
+  updateReplayStepLabels();
   if (state.session) state.session.timeframe = activeTimeframe;
   persistState();
 }
@@ -419,7 +430,7 @@ function setTimeframe(timeframe) {
   updateTimeframeButtons();
   if (state.session && activeBars.length && activeIndex >= 0) {
     updateChartData({ fit: true });
-    toast(`Chart berubah ke ${timeframeLabel()}. Replay tetap maju per candle M5.`, 'success', 3200);
+    toast(`Chart dan tombol replay sekarang melangkah per candle ${timeframeLabel()}. Posisi tetap diperiksa pada setiap candle M5 di antaranya.`, 'success', 4200);
   } else {
     $('chart-symbol-title').nextElementSibling.textContent = `Binance USDⓈ-M · Candlestick · ${timeframeLabel()}`;
   }
@@ -450,15 +461,15 @@ function updateHeaderForBar(bar, timeframeBars, rsiValues) {
   $('replay-time').textContent = formatWIB(bar.time);
   const startingIndex = state.session.startIndexBySymbol?.[state.session.activeSymbol] ?? activeIndex;
   const count = Math.max(1, activeIndex - startingIndex + 1);
-  $('replay-progress').textContent = `${count.toLocaleString('id-ID')} candle M5 dilangkahkan · ${timeframeBars.length.toLocaleString('id-ID')} candle ${timeframeLabel()} terlihat`;
-  $('replay-progress').title = 'Replay berjalan berdasarkan M5. Candle timeframe lebih tinggi dibangun hanya dari M5 yang sudah dibuka.';
+  $('replay-progress').textContent = `${count.toLocaleString('id-ID')} candle M5 terungkap · ${timeframeBars.length.toLocaleString('id-ID')} candle ${timeframeLabel()} terlihat`;
+  $('replay-progress').title = `Tombol Next melangkah per candle ${timeframeLabel()}; selama lompatan, setiap candle M5 tetap dievaluasi untuk SL/TP/likuidasi. Candle HTF aktif hanya memakai data yang sudah terungkap.`;
   $('session-year-chip').textContent = `${state.session.year} · ${MONTHS[state.session.month - 1]}`;
   $('active-pair').value = state.session.activeSymbol;
   $('ohlc-line').textContent = `O ${fmtPrice.format(chartBar.open)} · H ${fmtPrice.format(chartBar.high)} · L ${fmtPrice.format(chartBar.low)} · C ${fmtPrice.format(chartBar.close)} · Vol ${fmtQty.format(chartBar.volume)}`;
   const lastRsi = rsiValues[rsiValues.length - 1];
   $('rsi-value').textContent = lastRsi == null ? `RSI 14 · perlu lebih banyak ${timeframeLabel()}` : `RSI 14 · ${lastRsi.toFixed(1)}`;
   $('volume-time-label').textContent = `${state.session.activeSymbol} · ${timeframeLabel()}`;
-  $('replay-progress').setAttribute('aria-label', `${count} candle M5 dilangkahkan dari awal sesi`);
+  $('replay-progress').setAttribute('aria-label', `${count} candle M5 terungkap dari awal sesi; tombol Next mengikuti timeframe ${timeframeLabel()}`);
   $('chart-empty').hidden = true;
   $('next-candle').disabled = loading || findIndexAtOrAfter(activeBars, state.session.cursorTime + 1) >= activeBars.length;
   $('next-5').disabled = $('next-candle').disabled;
@@ -488,6 +499,47 @@ function coordForPoint(point) {
   if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
   return { x, y };
 }
+
+function ensurePositionDrawingEndTime(drawing) {
+  const anchorTime = Number(drawing?.points?.[0]?.time);
+  if (!Number.isFinite(anchorTime)) return null;
+  const durationSeconds = (TIMEFRAME_MS[activeTimeframe] || INTERVAL_MS) / 1000;
+  let endTime = Number(drawing.endTime);
+  if (!Number.isFinite(endTime) || endTime <= anchorTime) {
+    const existingPointTime = Math.max(
+      anchorTime,
+      Number(drawing.points?.[1]?.time) || anchorTime,
+      Number(drawing.points?.[2]?.time) || anchorTime,
+    );
+    endTime = Math.max(anchorTime + durationSeconds * 6, existingPointTime);
+    drawing.endTime = endTime;
+  }
+  return endTime;
+}
+
+function positionDrawingEndX(drawing, x1, chartWidth) {
+  const anchorTime = Number(drawing?.points?.[0]?.time);
+  if (!Number.isFinite(anchorTime) || !chartObjects || !displayBars.length) {
+    return Math.min(chartWidth - 72, x1 + 180);
+  }
+  const endTime = ensurePositionDrawingEndTime(drawing);
+  const durationSeconds = (TIMEFRAME_MS[activeTimeframe] || INTERVAL_MS) / 1000;
+  const anchorIndex = findIndexAtOrBefore(displayBars, anchorTime);
+  const logicalAnchor = Math.max(0, anchorIndex);
+  const widthBars = Math.max(2, (endTime - anchorTime) / durationSeconds);
+  const logicalEnd = logicalAnchor + widthBars;
+  const rawX = chartObjects.priceChart.timeScale().logicalToCoordinate(logicalEnd);
+  const fallbackX = x1 + Math.max(32, widthBars * 9);
+  return Math.max(x1 + 30, Math.min(chartWidth - 72, Number.isFinite(rawX) ? rawX : fallbackX));
+}
+
+function positionDrawingWidthHandle(drawing, chartWidth) {
+  const p1 = coordForPoint(drawing?.points?.[0]);
+  if (!p1) return null;
+  const yEntry = chartObjects.candleSeries.priceToCoordinate(Number(drawing.points[0].price));
+  if (!Number.isFinite(yEntry)) return null;
+  return { x: positionDrawingEndX(drawing, p1.x, chartWidth), y: yEntry };
+}
 function svgCircle(cx, cy, r, fill, stroke = '#0e141c') {
   return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="1.5" vector-effect="non-scaling-stroke"/>`;
 }
@@ -513,7 +565,7 @@ function redrawOneDrawing(drawing, width, height) {
     const p2 = coordForPoint(points[1]);
     const p3 = coordForPoint(points[2]);
     const x1 = p1.x;
-    const x2 = Math.max(x1 + 55, p2?.x || x1, p3?.x || x1, Math.min(width - 72, x1 + 180));
+    const x2 = positionDrawingEndX(drawing, x1, width);
     const positive = '#42d3a0';
     const negative = '#ec6e79';
     let markup = '';
@@ -528,7 +580,13 @@ function redrawOneDrawing(drawing, width, height) {
       markup += `<rect x="${x1}" y="${stopTop}" width="${Math.max(1, x2 - x1)}" height="${stopHeight}" fill="${negative}" fill-opacity=".13" stroke="${negative}" stroke-opacity=".5"/>`;
     }
     markup += svgLine(x1, yEntry, x2, yEntry, '#edf3fa', 1.2, '3 3');
+    const boxTop = Math.min(Number.isFinite(yTarget) ? yTarget : yEntry, Number.isFinite(yStop) ? yStop : yEntry);
+    const boxBottom = Math.max(Number.isFinite(yTarget) ? yTarget : yEntry, Number.isFinite(yStop) ? yStop : yEntry);
+    markup += svgLine(x2, boxTop, x2, boxBottom, '#aab8c8', 1, '2 3');
     markup += svgText(x1 + 5, yEntry - 5, `${isLong ? 'LONG' : 'SHORT'} · Entry ${fmtPrice.format(entry)}`, '#edf3fa');
+    // Width handle: drag this right-edge grip horizontally to widen/narrow the position box.
+    markup += svgCircle(x2, yEntry, 7, '#edf3fa', '#42d3a0');
+    markup += svgText(x2, yEntry + 19, '↔', '#edf3fa', 'middle');
     if (Number.isFinite(yStop)) {
       markup += svgLine(x1, yStop, x2, yStop, negative, 1.2, '4 3');
       markup += svgText(x1 + 5, yStop + (yStop < yEntry ? -5 : 13), `SL ${fmtPrice.format(stop)}`, negative);
@@ -623,7 +681,14 @@ function findPositionHandleNearPointer(event, maxDistance = 13) {
       if (!coords) continue;
       const distance = Math.hypot(coords.x - x, coords.y - y);
       if (distance <= maxDistance && (!best || distance < best.distance)) {
-        best = { drawingId: drawing.id, pointIndex, distance };
+        best = { drawingId: drawing.id, handleType: 'price', pointIndex, distance };
+      }
+    }
+    const widthHandle = positionDrawingWidthHandle(drawing, $('price-plot').clientWidth);
+    if (widthHandle) {
+      const distance = Math.hypot(widthHandle.x - x, widthHandle.y - y);
+      if (distance <= maxDistance + 2 && (!best || distance < best.distance)) {
+        best = { drawingId: drawing.id, handleType: 'width', distance };
       }
     }
   }
@@ -640,12 +705,16 @@ function handlePlotPointerDown(event) {
     event.stopImmediatePropagation();
     draggingDrawingHandle = {
       drawingId: drawing.id,
+      handleType: handle.handleType || 'price',
       pointIndex: handle.pointIndex,
-      originalPoint: { ...drawing.points[handle.pointIndex] },
+      originalPoint: Number.isInteger(handle.pointIndex) ? { ...drawing.points[handle.pointIndex] } : null,
+      originalEndTime: drawing.endTime,
     };
     try { $('price-plot').setPointerCapture(event.pointerId); } catch { /* Pointer capture is an enhancement. */ }
     $('price-plot').style.cursor = 'grabbing';
-    $('drawing-hint').textContent = `Mengubah ${handle.pointIndex === 0 ? 'ENTRY' : handle.pointIndex === 1 ? 'SL' : 'TP'} · lepas untuk menyimpan.`;
+    $('drawing-hint').textContent = handle.handleType === 'width'
+      ? 'Mengubah lebar gambar · geser grip ke kiri/kanan, lepas untuk menyimpan.'
+      : `Mengubah ${handle.pointIndex === 0 ? 'ENTRY' : handle.pointIndex === 1 ? 'SL' : 'TP'} · lepas untuk menyimpan.`;
     return;
   }
   const point = pointAtPointer(event);
@@ -686,7 +755,15 @@ function handlePlotPointerDown(event) {
       $('drawing-hint').textContent = activeTool === 'long' ? 'TP Long harus di atas ENTRY. Klik ulang pada harga TP.' : 'TP Short harus di bawah ENTRY. Klik ulang pada harga TP.';
       return;
     }
-    const drawing = { id: crypto.randomUUID?.() || String(Date.now()), type: activeTool, points };
+    const durationSeconds = (TIMEFRAME_MS[activeTimeframe] || INTERVAL_MS) / 1000;
+    const anchorTime = Number(points[0].time);
+    const existingPointTime = Math.max(anchorTime, Number(points[1].time) || anchorTime, Number(points[2].time) || anchorTime);
+    const drawing = {
+      id: crypto.randomUUID?.() || String(Date.now()),
+      type: activeTool,
+      points,
+      endTime: Math.max(anchorTime + durationSeconds * 6, existingPointTime),
+    };
     getDrawings().push(drawing);
     redoStack = [];
     finishDrawing();
@@ -703,13 +780,51 @@ function handlePlotPointerDown(event) {
 }
 function handlePlotPointerMove(event) {
   if (draggingDrawingHandle && state.session) {
-    const point = pointAtPointer(event);
-    if (!point) return;
     event.preventDefault();
     event.stopImmediatePropagation();
     const drawing = getDrawings().find((item) => item.id === draggingDrawingHandle.drawingId);
     if (!drawing) return;
-    drawing.points[draggingDrawingHandle.pointIndex] = point;
+
+    if (draggingDrawingHandle.handleType === 'width') {
+      const box = $('price-plot').getBoundingClientRect();
+      const x = event.clientX - box.left;
+      const scale = chartObjects?.priceChart?.timeScale();
+      const logical = scale?.coordinateToLogical(x);
+      const anchorTime = Number(drawing.points?.[0]?.time);
+      const anchorIndex = findIndexAtOrBefore(displayBars, anchorTime);
+      const durationSeconds = (TIMEFRAME_MS[activeTimeframe] || INTERVAL_MS) / 1000;
+      if (!Number.isFinite(logical) || !Number.isFinite(anchorTime) || anchorIndex < 0) return;
+      const widthBars = Math.max(2, Math.min(500, logical - anchorIndex));
+      drawing.endTime = anchorTime + Math.round(widthBars) * durationSeconds;
+
+      // Let the chart pan forward while the user drags near the right edge. This
+      // creates more horizontal room so the position box can be extended naturally.
+      const range = scale?.getVisibleLogicalRange();
+      if (range && x > box.width - 150 && logical > range.to - 4) {
+        const shift = Math.max(1, Math.ceil(logical - (range.to - 3)));
+        const maxWidthBars = 500;
+        if (widthBars + shift <= maxWidthBars) {
+          drawing.endTime += shift * durationSeconds;
+          scale.setVisibleLogicalRange({ from: range.from + shift, to: range.to + shift });
+        }
+      }
+      previewPoint = null;
+      renderDrawings();
+      return;
+    }
+
+    const point = pointAtPointer(event);
+    if (!point) return;
+    const pointIndex = draggingDrawingHandle.pointIndex;
+    const previousAnchorTime = Number(drawing.points?.[0]?.time);
+    const previousEndTime = ensurePositionDrawingEndTime(drawing);
+    const originalWidthSeconds = Number.isFinite(previousEndTime) && Number.isFinite(previousAnchorTime)
+      ? previousEndTime - previousAnchorTime
+      : ((TIMEFRAME_MS[activeTimeframe] || INTERVAL_MS) / 1000) * 6;
+    drawing.points[pointIndex] = point;
+    if (pointIndex === 0 && Number.isFinite(originalWidthSeconds) && originalWidthSeconds > 0) {
+      drawing.endTime = Number(point.time) + originalWidthSeconds;
+    }
     previewPoint = null;
     renderDrawings();
     return;
@@ -740,14 +855,24 @@ function handlePlotPointerUp(event) {
   draggingDrawingHandle = null;
   $('price-plot').style.cursor = '';
   if (!drawing) return;
-  if (!validPositionDrawing(drawing.type, drawing.points)) {
+  if (drag.handleType === 'width') {
+    const anchorTime = Number(drawing.points?.[0]?.time);
+    if (!Number.isFinite(Number(drawing.endTime)) || Number(drawing.endTime) <= anchorTime) {
+      drawing.endTime = Number.isFinite(Number(drag.originalEndTime))
+        ? Number(drag.originalEndTime)
+        : anchorTime + ((TIMEFRAME_MS[activeTimeframe] || INTERVAL_MS) / 1000) * 6;
+    }
+    const durationSeconds = (TIMEFRAME_MS[activeTimeframe] || INTERVAL_MS) / 1000;
+    const widthBars = Math.max(2, Math.round((drawing.endTime - anchorTime) / durationSeconds));
+    toast(`Lebar gambar ${drawing.type.toUpperCase()} diatur ke sekitar ${widthBars} candle ${timeframeLabel()}.`, 'success');
+  } else if (!validPositionDrawing(drawing.type, drawing.points)) {
     drawing.points[drag.pointIndex] = drag.originalPoint;
     toast('Level tidak valid. Long memerlukan SL < Entry < TP; Short memerlukan TP < Entry < SL. Perubahan dibatalkan.', 'error', 5000);
   } else {
     copyPositionDrawingToOrder(drawing, { notify: false });
     toast(`Level ${drawing.type.toUpperCase()} diperbarui. R:R 1:${calcPositionMetrics(drawing.type, drawing.points[0].price, drawing.points[1].price, drawing.points[2].price).rr.toFixed(2)}.`, 'success');
   }
-  $('drawing-hint').textContent = 'Cursor aktif · tarik handle ENTRY, SL, atau TP untuk mengubah gambar. Pilih Buy/Long atau Sell/Short untuk simulasi pada close candle aktif.';
+  $('drawing-hint').textContent = 'Cursor aktif · tarik ENTRY / SL / TP untuk mengubah level, atau grip ↔ di ujung kanan untuk mengubah lebar gambar.';
   renderDrawings();
   saveDrawings();
 }
@@ -757,7 +882,7 @@ function finishDrawing() {
   previewPoint = null;
   activeTool = 'cursor';
   document.querySelectorAll('[data-tool]').forEach((button) => button.classList.toggle('active', button.dataset.tool === activeTool));
-  $('drawing-hint').textContent = 'Cursor aktif · tarik handle ENTRY, SL, atau TP pada gambar Long/Short untuk mengubah level.';
+  $('drawing-hint').textContent = 'Cursor aktif · tarik ENTRY / SL / TP untuk mengubah level, atau grip ↔ di ujung kanan untuk mengubah lebar gambar.';
   renderDrawings();
   saveDrawings();
 }
@@ -769,12 +894,12 @@ function chooseDrawingTool(tool) {
   draggingDrawingHandle = null;
   document.querySelectorAll('[data-tool]').forEach((button) => button.classList.toggle('active', button.dataset.tool === tool));
   const hints = {
-    cursor: 'Cursor · tarik handle ENTRY / SL / TP untuk mengubah gambar Long/Short.',
+    cursor: 'Cursor · tarik ENTRY / SL / TP untuk mengubah level, atau grip ↔ di ujung kanan untuk mengatur lebar gambar.',
     horizontal: 'Klik chart untuk menaruh garis horizontal.',
     trend: 'Klik dua titik untuk menggambar trend line.',
     fib: 'Klik swing pertama lalu swing kedua untuk Fibonacci.',
-    long: '3 klik: ENTRY → SL → TP. RR bebas; setelah selesai, tarik handle untuk mengubah level.',
-    short: '3 klik: ENTRY → SL → TP. RR bebas; setelah selesai, tarik handle untuk mengubah level.',
+    long: '3 klik: ENTRY → SL → TP. RR bebas; tarik handle harga atau grip ↔ di ujung kanan untuk mengatur lebar gambar.',
+    short: '3 klik: ENTRY → SL → TP. RR bebas; tarik handle harga atau grip ↔ di ujung kanan untuk mengatur lebar gambar.',
   };
   $('drawing-hint').textContent = hints[tool] || '';
   renderDrawings();
@@ -1043,18 +1168,34 @@ function advanceOne() {
 }
 function stepForward(count = 1) {
   if (!state.session || loading) return;
-  let advanced = 0;
-  for (let i = 0; i < count; i++) {
-    if (!advanceOne()) break;
-    advanced++;
+  let targetTime;
+  try {
+    targetTime = nextReplayTargetSeconds(state.session.cursorTime, activeTimeframe, count);
+  } catch (error) {
+    toast(`Tidak bisa menghitung langkah replay: ${error.message}`, 'error', 5000);
+    return;
   }
-  if (!advanced) {
+  let targetIndex = findIndexAtOrAfter(activeBars, targetTime);
+  // If the target timeframe boundary is beyond this monthly archive, reveal the
+  // remaining bars rather than stopping early; every underlying M5 is still processed.
+  if (targetIndex >= activeBars.length) targetIndex = activeBars.length - 1;
+  if (targetIndex <= activeIndex) {
     toast('Arsip bulan ini sudah mencapai candle terakhir. Pilih sesi/bulan baru untuk melanjutkan.', 'error', 5000);
+    return;
+  }
+  let advancedM5 = 0;
+  while (activeIndex < targetIndex) {
+    if (!advanceOne()) break;
+    advancedM5++;
+  }
+  if (!advancedM5) {
+    toast('Tidak ada candle berikutnya pada arsip ini.', 'error', 5000);
     return;
   }
   updateChartData({ fit: false });
   persistState();
-  if (state.session.cursorTime) $('crosshair-time').textContent = `Waktu candle aktif: ${formatWIB(getCurrentBar()?.time ?? state.session.cursorTime)}`;
+  const bar = getCurrentBar();
+  if (bar) $('crosshair-time').textContent = `Waktu replay: ${formatWIB(bar.time)} · langkah ${timeframeLabel()}`;
 }
 
 function getOrderPreview() {
