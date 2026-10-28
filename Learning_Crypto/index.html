@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0b0e14">
-  <meta name="description" content="Latihan analisis chart dan paper trading menggunakan candle historis Binance Futures 5 menit.">
+  <meta name="description" content="Latihan analisis multi-timeframe dan paper trading dari candle historis Binance Futures M5, M15, H1, H4, dan D1.">
   <meta name="toolspace:title" content="Learning Crypto">
   <meta name="toolspace:category" content="Trading & Data">
   <meta name="toolspace:status" content="ready">
@@ -30,7 +30,13 @@
         <label class="visually-hidden" for="active-pair">Pair aktif</label>
         <select id="active-pair" class="pair-select" aria-label="Ganti pair"></select>
         <span class="market-chip">USDⓈ-M FUTURES</span>
-        <span class="timeframe-chip">5m</span>
+        <div id="timeframe-selector" class="timeframe-switcher" role="group" aria-label="Timeframe chart">
+          <button type="button" data-timeframe="5m" class="timeframe-button active" aria-pressed="true" title="Lihat chart 5 menit">M5</button>
+          <button type="button" data-timeframe="15m" class="timeframe-button" aria-pressed="false" title="Lihat chart 15 menit">M15</button>
+          <button type="button" data-timeframe="1h" class="timeframe-button" aria-pressed="false" title="Lihat chart 1 jam">H1</button>
+          <button type="button" data-timeframe="4h" class="timeframe-button" aria-pressed="false" title="Lihat chart 4 jam">H4</button>
+          <button type="button" data-timeframe="1d" class="timeframe-button" aria-pressed="false" title="Lihat chart harian">D1</button>
+        </div>
       </div>
       <div class="topbar-right">
         <span id="session-year-chip" class="subtle-chip">Belum mulai</span>
@@ -43,7 +49,7 @@
         <div class="chart-summary-bar">
           <div class="symbol-summary">
             <span id="symbol-avatar" class="coin-avatar">B</span>
-            <div><strong id="chart-symbol-title">BTCUSDT</strong><small>Binance USDⓈ-M · Candlestick · 5 menit</small></div>
+            <div><strong id="chart-symbol-title">BTCUSDT</strong><small>Binance USDⓈ-M · Candlestick · M5</small></div>
           </div>
           <div class="ohlc-line" id="ohlc-line" aria-live="polite">O — H — L — C — Vol —</div>
           <div class="last-price-block"><strong id="last-price">—</strong><small id="last-change">Data historis</small></div>
@@ -84,13 +90,13 @@
           <div class="replay-clock"><span class="console-label">REPLAY TIME · WIB</span><strong id="replay-time">Belum ada sesi</strong><small id="replay-progress">Candle 0 dari 0</small></div>
           <div class="replay-actions">
             <button id="reset-session" type="button" class="button button-secondary"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11a9 9 0 1 1 2.6 6.4M3 4v7h7"/></svg> Reset sesi</button>
-            <button id="next-5" type="button" class="button button-secondary" disabled>Next 5</button>
-            <button id="next-10" type="button" class="button button-secondary" disabled>Next 10</button>
-            <button id="next-candle" type="button" class="button button-primary" disabled>Next Candle <span>→</span></button>
+            <button id="next-5" type="button" class="button button-secondary" disabled title="Buka lima candle M5 berikutnya">Next 5 M5</button>
+            <button id="next-10" type="button" class="button button-secondary" disabled title="Buka sepuluh candle M5 berikutnya">Next 10 M5</button>
+            <button id="next-candle" type="button" class="button button-primary" disabled title="Buka candle M5 berikutnya">Next M5 Candle <span>→</span></button>
           </div>
         </div>
 
-        <div class="disclosure-note"><strong>Replay edukasi.</strong> Data chart bersumber dari arsip publik Binance, bukan candle buatan. MVP ini mengunduh arsip bulanan ke browser untuk diproses; candle masa depan disembunyikan di tampilan, tetapi belum dilindungi dari pemeriksaan teknis melalui DevTools/network. Tidak ada order sungguhan.</div>
+        <div class="disclosure-note"><strong>Replay edukasi.</strong> Data dasar menggunakan candle M5 historis Binance. M15, H1, H4, dan D1 dihitung dari candle M5 yang sudah terungkap sampai titik replay; candle timeframe aktif bisa masih berjalan. Data mentah diunduh ke browser dan dapat diperiksa lewat DevTools. Tidak ada order sungguhan.</div>
       </section>
 
       <aside class="side-column" aria-label="Trading simulator and stats">
@@ -132,7 +138,7 @@
           <div id="trade-journal" class="trade-journal"><div class="empty-list">Hasil trade akan tercatat otomatis di sini.</div></div>
         </section>
 
-        <section class="panel-card help-card"><span class="eyebrow">SHORTCUTS</span><div><kbd>N</kbd> Next candle</div><div><kbd>Esc</kbd> Batalkan alat gambar</div><div><kbd>Ctrl</kbd> + <kbd>Z</kbd> Undo gambar</div><a href="https://data.binance.vision/" target="_blank" rel="noreferrer">Sumber arsip historis Binance ↗</a></section>
+        <section class="panel-card help-card"><span class="eyebrow">SHORTCUTS</span><div><kbd>N</kbd> Next M5 candle</div><div><kbd>Esc</kbd> Batalkan alat gambar</div><div><kbd>Ctrl</kbd> + <kbd>Z</kbd> Undo gambar</div><a href="https://data.binance.vision/" target="_blank" rel="noreferrer">Sumber arsip historis Binance ↗</a></section>
       </aside>
     </main>
 
@@ -147,7 +153,7 @@
         <div class="form-grid two-cols"><label>Tahun historis<select id="setup-year"><option value="2023">2023</option><option value="2024" selected>2024</option><option value="2025">2025</option></select></label><label>Bulan data<select id="setup-month"><option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option><option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option><option value="7">Juli</option><option value="8">Agustus</option><option value="9">September</option><option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option></select></label></div>
         <div class="form-grid two-cols"><label>Pair utama<select id="setup-pair"><option>BTCUSDT</option><option>ETHUSDT</option><option>BNBUSDT</option><option>SOLUSDT</option><option>XRPUSDT</option><option>ADAUSDT</option><option>DOGEUSDT</option><option>LINKUSDT</option><option>AVAXUSDT</option><option>TRXUSDT</option></select></label><label>Mode awal<select id="setup-mode"><option value="random">Mulai acak (disarankan)</option><option value="specific">Pilih tanggal & jam</option></select></label></div>
         <label id="start-at-wrap" class="start-at-label" hidden>Mulai pada waktu (WIB)<input id="setup-start-at" type="datetime-local" step="300"><small>Waktu menunjukkan open time candle 5 menit. Jika tidak tepat pada candle, akan dipilih candle tersedia berikutnya.</small></label>
-        <div class="welcome-facts"><div><span>Saldo virtual</span><strong>10,000 USDT</strong></div><div><span>Leverage maks.</span><strong>50×</strong></div><div><span>Timeframe</span><strong>5 menit</strong></div></div>
+        <div class="welcome-facts"><div><span>Saldo virtual</span><strong>10,000 USDT</strong></div><div><span>Leverage maks.</span><strong>50×</strong></div><div><span>Timeframe</span><strong>M5 · M15 · H1 · H4 · D1</strong></div></div>
         <button id="start-session" type="submit" class="button button-primary full-width">Mulai latihan <span>→</span></button>
         <button id="resume-session" type="button" class="button button-secondary full-width" hidden>Lanjutkan sesi sebelumnya</button>
         <div id="start-message" class="start-message" role="status">Data satu bulan akan diambil dari arsip publik Binance. Tidak perlu API key.</div>

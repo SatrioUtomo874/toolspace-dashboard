@@ -1,5 +1,56 @@
 export const TIMEZONE = 'Asia/Jakarta';
 export const INTERVAL_MS = 5 * 60 * 1000;
+
+export const TIMEFRAME_MS = Object.freeze({
+  '5m': 5 * 60 * 1000,
+  '15m': 15 * 60 * 1000,
+  '1h': 60 * 60 * 1000,
+  '4h': 4 * 60 * 60 * 1000,
+  '1d': 24 * 60 * 60 * 1000,
+});
+
+/**
+ * Aggregate already-available Binance 5m bars into a larger timeframe.
+ * Buckets follow UTC epoch boundaries (matching Binance kline boundaries).
+ * Input must contain only bars revealed up to the replay cursor; the active HTF
+ * candle therefore remains partial and updates without leaking future M5 data.
+ */
+export function aggregateCandles(bars, timeframe = '5m') {
+  const durationMs = TIMEFRAME_MS[timeframe];
+  if (!durationMs) throw new Error(`Unsupported timeframe: ${timeframe}`);
+  if (!Array.isArray(bars) || bars.length === 0) return [];
+  if (timeframe === '5m') return bars.map((bar) => ({ ...bar }));
+
+  const grouped = [];
+  let current = null;
+  for (const bar of bars) {
+    const sourceTimeMs = Number.isFinite(bar.timeMs) ? bar.timeMs : Number(bar.time) * 1000;
+    if (!Number.isFinite(sourceTimeMs)) continue;
+    const bucketTimeMs = Math.floor(sourceTimeMs / durationMs) * durationMs;
+    if (!current || current.timeMs !== bucketTimeMs) {
+      current = {
+        timeMs: bucketTimeMs,
+        time: Math.floor(bucketTimeMs / 1000),
+        closeTimeMs: Number.isFinite(bar.closeTimeMs) ? bar.closeTimeMs : sourceTimeMs + INTERVAL_MS - 1,
+        open: Number(bar.open),
+        high: Number(bar.high),
+        low: Number(bar.low),
+        close: Number(bar.close),
+        volume: Number(bar.volume) || 0,
+        sourceBars: 1,
+      };
+      grouped.push(current);
+    } else {
+      current.high = Math.max(current.high, Number(bar.high));
+      current.low = Math.min(current.low, Number(bar.low));
+      current.close = Number(bar.close);
+      current.volume += Number(bar.volume) || 0;
+      current.closeTimeMs = Number.isFinite(bar.closeTimeMs) ? bar.closeTimeMs : sourceTimeMs + INTERVAL_MS - 1;
+      current.sourceBars += 1;
+    }
+  }
+  return grouped;
+}
 export const DEFAULT_BALANCE = 10_000;
 export const DEFAULT_FEE_BPS = 5;
 export const DEFAULT_SLIPPAGE_BPS = 2;

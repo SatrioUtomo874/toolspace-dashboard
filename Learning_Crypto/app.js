@@ -1,6 +1,6 @@
 import {
-  TIMEZONE, INTERVAL_MS, DEFAULT_BALANCE, DEFAULT_FEE_BPS, DEFAULT_SLIPPAGE_BPS,
-  parseKlineCsv, ema, rsi, findIndexAtOrBefore, findIndexAtOrAfter,
+  TIMEZONE, INTERVAL_MS, TIMEFRAME_MS, DEFAULT_BALANCE, DEFAULT_FEE_BPS, DEFAULT_SLIPPAGE_BPS,
+  parseKlineCsv, aggregateCandles, ema, rsi, findIndexAtOrBefore, findIndexAtOrAfter,
   formatWIB, formatAxisTime, calcTradeStats, calcPnl, estimateLiquidation, sanitizePair,
 } from './core.js';
 
@@ -16,6 +16,7 @@ const fmtPrice = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maxi
 const fmtQty = new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 6 });
 
 let state = loadStoredState() || createEmptyState();
+let activeTimeframe = state.session?.timeframe || '5m';
 let datasets = new Map();
 let archiveModulePromise = null;
 let activeBars = [];
@@ -342,11 +343,12 @@ function buildLineData(times, value, title = '') {
 
 function updateChartData({ fit = false } = {}) {
   if (!chartObjects || !activeBars.length || activeIndex < 0) return;
-  const revealed = activeBars.slice(0, activeIndex + 1);
-  // Only revealed bars are passed into the chart. Keep all revealed bars in the chart data so drawings
-  // anchored earlier in the replay remain attached when the user pans backwards.
-  displayBars = revealed;
-  const closes = revealed.map((bar) => bar.close);
+  const revealedM5 = activeBars.slice(0, activeIndex + 1);
+  // Derive the selected timeframe from revealed M5 bars only. The final HTF candle is
+  // intentionally partial and changes as the user presses Next Candle; no future M5 is used.
+  displayBars = aggregateCandles(revealedM5, activeTimeframe);
+  if (!displayBars.length) return;
+  const closes = displayBars.map((bar) => bar.close);
   const ema20 = ema(closes, 20);
   const ema50 = ema(closes, 50);
   const rsi14 = rsi(closes, 14);
@@ -386,40 +388,78 @@ function updateChartData({ fit = false } = {}) {
     try { chartObjects.priceChart.timeScale().setVisibleLogicalRange({ from: Math.max(0, candleData.length - 110), to: candleData.length + 7 }); } catch { /* chart will autoscale when its range next changes */ }
   }
   const bar = getCurrentBar();
-  if (bar) updateHeaderForBar(bar, revealed, rsi14);
+  if (bar) updateHeaderForBar(bar, displayBars, rsi14);
   renderDrawings();
   updateContextCards();
   renderAccount();
   updateOrderPreview();
 }
 
-function updateHeaderForBar(bar, revealed, rsiValues) {
+function timeframeLabel(timeframe = activeTimeframe) {
+  return ({ '5m': 'M5', '15m': 'M15', '1h': 'H1', '4h': 'H4', '1d': 'D1' })[timeframe] || timeframe.toUpperCase();
+}
+
+function updateTimeframeButtons() {
+  document.querySelectorAll('[data-timeframe]').forEach((button) => {
+    const selected = button.dataset.timeframe === activeTimeframe;
+    button.classList.toggle('active', selected);
+    button.setAttribute('aria-pressed', String(selected));
+  });
+  if (state.session) state.session.timeframe = activeTimeframe;
+  persistState();
+}
+
+function setTimeframe(timeframe) {
+  if (!Object.hasOwn(TIMEFRAME_MS, timeframe) || timeframe === activeTimeframe) return;
+  activeTimeframe = timeframe;
+  updateTimeframeButtons();
+  if (state.session && activeBars.length && activeIndex >= 0) {
+    updateChartData({ fit: true });
+    toast(`Chart berubah ke ${timeframeLabel()}. Replay tetap maju per candle M5.`, 'success', 3200);
+  } else {
+    $('chart-symbol-title').nextElementSibling.textContent = `Binance USDⓈ-M · Candlestick · ${timeframeLabel()}`;
+  }
+}
+
+function updateHeaderForBar(bar, timeframeBars, rsiValues) {
+  const chartBar = timeframeBars[timeframeBars.length - 1];
   $('chart-symbol-title').textContent = state.session.activeSymbol;
   $('symbol-avatar').textContent = state.session.activeSymbol.replace('USDT', '').slice(0, 1);
+  $('chart-symbol-title').nextElementSibling.textContent = `Binance USDⓈ-M · Candlestick · ${timeframeLabel()}`;
   $('last-price').textContent = fmtPrice.format(bar.close);
   const initial = state.account.pairReference[state.session.activeSymbol];
   const change = Number.isFinite(initial) && initial !== 0 ? ((bar.close / initial) - 1) * 100 : 0;
   $('last-change').textContent = `${change >= 0 ? '+' : ''}${change.toFixed(2)}% sejak pair dipilih`;
   $('last-change').className = change >= 0 ? 'positive' : 'negative';
-  const closeSec = Math.floor(bar.closeTimeMs / 1000);
-  $('main-time-label').textContent = `Candle: ${formatWIB(bar.time)} → ${formatWIB(closeSec)}`;
+
+  const timeframeMs = TIMEFRAME_MS[activeTimeframe];
+  const periodEndSec = Math.floor((chartBar.timeMs + timeframeMs) / 1000);
+  const dataUntilSec = Math.floor((bar.timeMs + INTERVAL_MS) / 1000);
+  const complete = dataUntilSec >= periodEndSec;
+  if (activeTimeframe === '5m') {
+    $('main-time-label').textContent = `M5 · ${formatWIB(chartBar.time)} → ${formatWIB(periodEndSec)}`;
+  } else if (complete) {
+    $('main-time-label').textContent = `${timeframeLabel()} · ${formatWIB(chartBar.time)} → ${formatWIB(periodEndSec)} · selesai`;
+  } else {
+    $('main-time-label').textContent = `${timeframeLabel()} · mulai ${formatWIB(chartBar.time)} · data sampai ${formatWIB(dataUntilSec)}`;
+  }
   $('replay-time').textContent = formatWIB(bar.time);
   const startingIndex = state.session.startIndexBySymbol?.[state.session.activeSymbol] ?? activeIndex;
   const count = Math.max(1, activeIndex - startingIndex + 1);
-  $('replay-progress').textContent = `${count.toLocaleString('id-ID')} candle dilangkahkan · ${revealed.length.toLocaleString('id-ID')} candle terlihat`;
-  $('replay-progress').title = 'Candle yang sudah dibuka pada pair aktif. Dataset satu bulan dimuat ke browser.';
+  $('replay-progress').textContent = `${count.toLocaleString('id-ID')} candle M5 dilangkahkan · ${timeframeBars.length.toLocaleString('id-ID')} candle ${timeframeLabel()} terlihat`;
+  $('replay-progress').title = 'Replay berjalan berdasarkan M5. Candle timeframe lebih tinggi dibangun hanya dari M5 yang sudah dibuka.';
   $('session-year-chip').textContent = `${state.session.year} · ${MONTHS[state.session.month - 1]}`;
   $('active-pair').value = state.session.activeSymbol;
-  $('ohlc-line').textContent = `O ${fmtPrice.format(bar.open)} · H ${fmtPrice.format(bar.high)} · L ${fmtPrice.format(bar.low)} · C ${fmtPrice.format(bar.close)} · Vol ${fmtQty.format(bar.volume)}`;
+  $('ohlc-line').textContent = `O ${fmtPrice.format(chartBar.open)} · H ${fmtPrice.format(chartBar.high)} · L ${fmtPrice.format(chartBar.low)} · C ${fmtPrice.format(chartBar.close)} · Vol ${fmtQty.format(chartBar.volume)}`;
   const lastRsi = rsiValues[rsiValues.length - 1];
-  $('rsi-value').textContent = lastRsi == null ? 'RSI warming up' : `RSI ${lastRsi.toFixed(1)}`;
-  $('volume-time-label').textContent = `${state.session.activeSymbol} · 5m`;
-  $('replay-progress').setAttribute('aria-label', `${count} candle dilangkahkan dari awal sesi`);
+  $('rsi-value').textContent = lastRsi == null ? `RSI 14 · perlu lebih banyak ${timeframeLabel()}` : `RSI 14 · ${lastRsi.toFixed(1)}`;
+  $('volume-time-label').textContent = `${state.session.activeSymbol} · ${timeframeLabel()}`;
+  $('replay-progress').setAttribute('aria-label', `${count} candle M5 dilangkahkan dari awal sesi`);
   $('chart-empty').hidden = true;
   $('next-candle').disabled = loading || findIndexAtOrAfter(activeBars, state.session.cursorTime + 1) >= activeBars.length;
   $('next-5').disabled = $('next-candle').disabled;
   $('next-10').disabled = $('next-candle').disabled;
-  persistState();
+  updateTimeframeButtons();
 }
 
 function getDrawings() {
@@ -437,7 +477,9 @@ function svgText(x, y, text, color = '#d8e2ed', align = 'start') {
 }
 function coordForPoint(point) {
   if (!point || !chartObjects) return null;
-  const x = chartObjects.priceChart.timeScale().timeToCoordinate(point.time);
+  const mappedIndex = findIndexAtOrBefore(displayBars, point.time);
+  const mappedTime = mappedIndex >= 0 ? displayBars[mappedIndex].time : point.time;
+  const x = chartObjects.priceChart.timeScale().timeToCoordinate(mappedTime);
   const y = chartObjects.candleSeries.priceToCoordinate(point.price);
   if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
   return { x, y };
@@ -614,7 +656,7 @@ async function startNewSession(config) {
     state.session = {
       year: Number(year), month: Number(month), activeSymbol: symbol,
       cursorTime: bar.time, startingTime: bar.time, sessionId: (crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`),
-      startMode: mode, requestedStartTime: startAt || null,
+      startMode: mode, requestedStartTime: startAt || null, timeframe: activeTimeframe,
       startIndexBySymbol: { [symbol]: startIndex }, pairReference: {},
     };
     state.account = {
@@ -650,6 +692,8 @@ async function resumePreviousSession() {
   try {
     ensureCharts();
     const s = state.session;
+    activeTimeframe = Object.hasOwn(TIMEFRAME_MS, s.timeframe) ? s.timeframe : '5m';
+    updateTimeframeButtons();
     const mainData = await loadArchive(s.activeSymbol, s.year, s.month, (message) => setStartMessage(message));
     activeBars = mainData.bars;
     activeIndex = findIndexAtOrBefore(activeBars, s.cursorTime);
@@ -1110,6 +1154,9 @@ function toast(message, type = '', duration = 3600) {
 
 function initializeUI() {
   populateActivePairs();
+  if (!Object.hasOwn(TIMEFRAME_MS, activeTimeframe)) activeTimeframe = '5m';
+  updateTimeframeButtons();
+  document.querySelectorAll('[data-timeframe]').forEach((button) => button.addEventListener('click', () => setTimeframe(button.dataset.timeframe)));
   $('setup-year').value = String(state.session?.year || 2024);
   $('setup-month').value = String(state.session?.month || 1);
   $('setup-pair').value = state.session?.activeSymbol || 'BTCUSDT';

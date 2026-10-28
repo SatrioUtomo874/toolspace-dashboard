@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseKlineCsv, ema, rsi, findIndexAtOrBefore, findIndexAtOrAfter, calcTradeStats, calcPnl, estimateLiquidation, formatWIB, sanitizePair } from '../core.js';
+import { parseKlineCsv, aggregateCandles, TIMEFRAME_MS, ema, rsi, findIndexAtOrBefore, findIndexAtOrAfter, calcTradeStats, calcPnl, estimateLiquidation, formatWIB, sanitizePair } from '../core.js';
 
 test('parseKlineCsv skips a header and normalizes timestamps', () => {
   const csv = 'open_time,open,high,low,close,volume,close_time\n1704067200000,100,105,99,103,12,1704067499999\n1704067500000,103,104,101,102,15,1704067799999';
@@ -57,4 +57,63 @@ test('WIB timestamps and pair validation', () => {
   assert.equal(formatWIB(1704067200), '2024-01-01 07:00 WIB');
   assert.equal(sanitizePair('BTCUSDT'), true);
   assert.equal(sanitizePair('BTC/USDT'), false);
+});
+
+
+test('aggregateCandles combines M5 bars into M15 with correct OHLCV and UTC boundary', () => {
+  const start = Date.UTC(2024, 0, 1, 0, 0, 0);
+  const bars = [
+    { timeMs: start, time: start / 1000, closeTimeMs: start + 299999, open: 100, high: 103, low: 99, close: 102, volume: 10 },
+    { timeMs: start + 300000, time: (start + 300000) / 1000, closeTimeMs: start + 599999, open: 102, high: 106, low: 101, close: 105, volume: 11 },
+    { timeMs: start + 600000, time: (start + 600000) / 1000, closeTimeMs: start + 899999, open: 105, high: 107, low: 104, close: 106, volume: 12 },
+    { timeMs: start + 900000, time: (start + 900000) / 1000, closeTimeMs: start + 1199999, open: 106, high: 108, low: 105, close: 107, volume: 13 },
+  ];
+  const result = aggregateCandles(bars, '15m');
+  assert.equal(result.length, 2);
+  assert.equal(result[0].timeMs, start);
+  assert.equal(result[0].open, 100);
+  assert.equal(result[0].high, 107);
+  assert.equal(result[0].low, 99);
+  assert.equal(result[0].close, 106);
+  assert.equal(result[0].volume, 33);
+  assert.equal(result[0].sourceBars, 3);
+  assert.equal(result[1].open, 106);
+  assert.equal(result[1].close, 107);
+});
+
+test('higher timeframe aggregation only contains provided replay bars and keeps active bar partial', () => {
+  const start = Date.UTC(2024, 2, 1, 0, 0, 0);
+  const bars = Array.from({ length: 7 }, (_, i) => ({
+    timeMs: start + i * TIMEFRAME_MS['5m'],
+    time: (start + i * TIMEFRAME_MS['5m']) / 1000,
+    closeTimeMs: start + (i + 1) * TIMEFRAME_MS['5m'] - 1,
+    open: 100 + i,
+    high: 101 + i,
+    low: 99 + i,
+    close: 100.5 + i,
+    volume: 1,
+  }));
+  const h1 = aggregateCandles(bars, '1h');
+  assert.equal(h1.length, 1);
+  assert.equal(h1[0].sourceBars, 7);
+  assert.equal(h1[0].close, bars[6].close);
+  assert.equal(h1[0].closeTimeMs, bars[6].closeTimeMs);
+  assert.ok(h1[0].closeTimeMs < h1[0].timeMs + TIMEFRAME_MS['1h'] - 1);
+});
+
+test('daily aggregation follows UTC boundaries while display timezone remains WIB', () => {
+  const t0 = Date.UTC(2024, 0, 1, 23, 55, 0);
+  const bars = [0, 1, 2].map((i) => ({
+    timeMs: t0 + i * TIMEFRAME_MS['5m'], time: (t0 + i * TIMEFRAME_MS['5m']) / 1000,
+    closeTimeMs: t0 + (i + 1) * TIMEFRAME_MS['5m'] - 1,
+    open: 10 + i, high: 12 + i, low: 9 + i, close: 11 + i, volume: 1,
+  }));
+  const d1 = aggregateCandles(bars, '1d');
+  assert.equal(d1.length, 2);
+  assert.equal(d1[0].timeMs, Date.UTC(2024, 0, 1));
+  assert.equal(d1[1].timeMs, Date.UTC(2024, 0, 2));
+});
+
+test('aggregateCandles rejects unsupported timeframe', () => {
+  assert.throws(() => aggregateCandles([], '2h'), /Unsupported timeframe/);
 });
