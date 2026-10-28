@@ -61,8 +61,8 @@
           <button type="button" class="tool-button" data-tool="horizontal" title="Garis horizontal"><span>―</span><em>H-Line</em></button>
           <button type="button" class="tool-button" data-tool="trend" title="Trend line"><span>／</span><em>Trend</em></button>
           <button type="button" class="tool-button" data-tool="fib" title="Fibonacci retracement"><span>⌁</span><em>Fibonacci</em></button>
-          <button type="button" class="tool-button" data-tool="long" title="Long position drawing"><span class="long-icon">↗</span><em>Long</em></button>
-          <button type="button" class="tool-button" data-tool="short" title="Short position drawing"><span class="short-icon">↘</span><em>Short</em></button>
+          <button type="button" class="tool-button" data-tool="long" title="Long Position: klik ENTRY → SL → TP; R:R bebas, level bisa digeser"><span class="long-icon">↗</span><em>Long</em></button>
+          <button type="button" class="tool-button" data-tool="short" title="Short Position: klik ENTRY → SL → TP; R:R bebas, level bisa digeser"><span class="short-icon">↘</span><em>Short</em></button>
           <span class="toolbar-divider"></span>
           <button type="button" id="undo-drawing" class="tool-button compact" title="Undo gambar"><span>↶</span><em>Undo</em></button>
           <button type="button" id="redo-drawing" class="tool-button compact" title="Redo gambar"><span>↷</span><em>Redo</em></button>
@@ -118,7 +118,7 @@
           </form>
           <div id="order-message" class="inline-message" role="status">Mulai sesi untuk mengaktifkan paper trading.</div>
           <div class="fee-row"><label>Fee (bps)<input id="fee-bps" type="number" value="5" min="0" max="100" step="1"></label><label>Slippage (bps)<input id="slippage-bps" type="number" value="2" min="0" max="100" step="1"></label></div>
-          <p class="tiny-note">Fee 5 bps dan slippage 2 bps adalah asumsi edukasional yang bisa diubah, bukan klaim tarif Binance saat ini.</p>
+          <p class="tiny-note">Entry BUY/SELL memakai close candle replay yang sedang terlihat. Atur SL/TP sendiri atau gambar Long/Short 3 titik (ENTRY → SL → TP); level dari gambar disalin ke ticket. Fee dan slippage adalah asumsi edukasional yang bisa diubah.</p>
         </section>
 
         <section class="panel-card context-card">

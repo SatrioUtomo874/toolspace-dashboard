@@ -260,6 +260,27 @@ export function calcTradeStats(trades, equityCurve = [], startingBalance = 10_00
   };
 }
 
+
+/** Calculate the risk/reward of a freely placed Long/Short position drawing. */
+export function calcPositionMetrics(side, entry, stop, target) {
+  const e = Number(entry);
+  const sl = Number(stop);
+  const tp = Number(target);
+  const validNumbers = [e, sl, tp].every((value) => Number.isFinite(value) && value > 0);
+  if (!validNumbers || !['long', 'short'].includes(side)) {
+    return { valid: false, riskPerUnit: null, rewardPerUnit: null, rr: null };
+  }
+  const validLevels = side === 'long' ? sl < e && tp > e : sl > e && tp < e;
+  const riskPerUnit = Math.abs(e - sl);
+  const rewardPerUnit = Math.abs(tp - e);
+  return {
+    valid: validLevels && riskPerUnit > 0 && rewardPerUnit > 0,
+    riskPerUnit,
+    rewardPerUnit,
+    rr: riskPerUnit > 0 ? rewardPerUnit / riskPerUnit : null,
+  };
+}
+
 export function calcPnl(side, quantity, entryPrice, exitPrice) {
   if (side === 'long') return quantity * (exitPrice - entryPrice);
   return quantity * (entryPrice - exitPrice);

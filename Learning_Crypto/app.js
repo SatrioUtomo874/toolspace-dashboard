@@ -1,7 +1,7 @@
 import {
   TIMEZONE, INTERVAL_MS, TIMEFRAME_MS, DEFAULT_BALANCE, DEFAULT_FEE_BPS, DEFAULT_SLIPPAGE_BPS,
   parseKlineCsv, aggregateCandles, ema, rsi, findIndexAtOrBefore, findIndexAtOrAfter,
-  formatWIB, formatAxisTime, calcTradeStats, calcPnl, estimateLiquidation, sanitizePair,
+  formatWIB, formatAxisTime, calcTradeStats, calcPnl, calcPositionMetrics, estimateLiquidation, sanitizePair,
 } from './core.js';
 
 const $ = (id) => document.getElementById(id);
@@ -25,7 +25,9 @@ let displayBars = [];
 let chartObjects = null;
 let activeTool = 'cursor';
 let pendingDrawPoint = null;
+let pendingSecondDrawPoint = null;
 let previewPoint = null;
+let draggingDrawingHandle = null;
 let redoStack = [];
 let syncLock = false;
 let loading = false;
@@ -329,7 +331,9 @@ function ensureCharts() {
 
   $('price-plot').addEventListener('pointerdown', handlePlotPointerDown, true);
   $('price-plot').addEventListener('pointermove', handlePlotPointerMove, true);
-  $('price-plot').addEventListener('pointerleave', () => { previewPoint = null; renderDrawings(); });
+  $('price-plot').addEventListener('pointerup', handlePlotPointerUp, true);
+  $('price-plot').addEventListener('pointercancel', handlePlotPointerUp, true);
+  $('price-plot').addEventListener('pointerleave', () => { if (!draggingDrawingHandle) { previewPoint = null; renderDrawings(); } });
 }
 
 function getCurrentBar() {
@@ -484,15 +488,68 @@ function coordForPoint(point) {
   if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
   return { x, y };
 }
+function svgCircle(cx, cy, r, fill, stroke = '#0e141c') {
+  return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="1.5" vector-effect="non-scaling-stroke"/>`;
+}
 function redrawOneDrawing(drawing, width, height) {
-  const p1 = coordForPoint(drawing.points?.[0]);
+  const points = Array.isArray(drawing.points) ? drawing.points : [];
+  const p1 = coordForPoint(points[0]);
   if (drawing.type === 'horizontal') {
-    const y = chartObjects.candleSeries.priceToCoordinate(drawing.points[0].price);
+    const y = chartObjects.candleSeries.priceToCoordinate(points[0]?.price);
     if (!Number.isFinite(y)) return '';
-    return `${svgLine(0, y, Math.max(0, width - 70), y, '#e6bd65', 1.4, '5 4')}${svgText(8, y - 5, `H · ${fmtPrice.format(drawing.points[0].price)}`, '#e6bd65')}`;
+    return `${svgLine(0, y, Math.max(0, width - 70), y, '#e6bd65', 1.4, '5 4')}${svgText(8, y - 5, `H · ${fmtPrice.format(points[0].price)}`, '#e6bd65')}`;
   }
   if (!p1) return '';
-  const point2 = drawing.points?.[1] || (drawing === previewPoint ? null : null);
+
+  if (drawing.type === 'long' || drawing.type === 'short') {
+    const entry = Number(points[0]?.price);
+    const stop = Number(points[1]?.price);
+    const target = Number(points[2]?.price);
+    const isLong = drawing.type === 'long';
+    const yEntry = chartObjects.candleSeries.priceToCoordinate(entry);
+    const yStop = Number.isFinite(stop) ? chartObjects.candleSeries.priceToCoordinate(stop) : null;
+    const yTarget = Number.isFinite(target) ? chartObjects.candleSeries.priceToCoordinate(target) : null;
+    if (!Number.isFinite(yEntry)) return '';
+    const p2 = coordForPoint(points[1]);
+    const p3 = coordForPoint(points[2]);
+    const x1 = p1.x;
+    const x2 = Math.max(x1 + 55, p2?.x || x1, p3?.x || x1, Math.min(width - 72, x1 + 180));
+    const positive = '#42d3a0';
+    const negative = '#ec6e79';
+    let markup = '';
+    if (Number.isFinite(yTarget)) {
+      const targetTop = Math.min(yEntry, yTarget);
+      const targetHeight = Math.max(1, Math.abs(yEntry - yTarget));
+      markup += `<rect x="${x1}" y="${targetTop}" width="${Math.max(1, x2 - x1)}" height="${targetHeight}" fill="${positive}" fill-opacity=".13" stroke="${positive}" stroke-opacity=".5"/>`;
+    }
+    if (Number.isFinite(yStop)) {
+      const stopTop = Math.min(yEntry, yStop);
+      const stopHeight = Math.max(1, Math.abs(yEntry - yStop));
+      markup += `<rect x="${x1}" y="${stopTop}" width="${Math.max(1, x2 - x1)}" height="${stopHeight}" fill="${negative}" fill-opacity=".13" stroke="${negative}" stroke-opacity=".5"/>`;
+    }
+    markup += svgLine(x1, yEntry, x2, yEntry, '#edf3fa', 1.2, '3 3');
+    markup += svgText(x1 + 5, yEntry - 5, `${isLong ? 'LONG' : 'SHORT'} · Entry ${fmtPrice.format(entry)}`, '#edf3fa');
+    if (Number.isFinite(yStop)) {
+      markup += svgLine(x1, yStop, x2, yStop, negative, 1.2, '4 3');
+      markup += svgText(x1 + 5, yStop + (yStop < yEntry ? -5 : 13), `SL ${fmtPrice.format(stop)}`, negative);
+      markup += svgCircle(p2?.x ?? x1, yStop, 5, negative);
+    }
+    if (Number.isFinite(yTarget)) {
+      markup += svgLine(x1, yTarget, x2, yTarget, positive, 1.2, '4 3');
+      markup += svgText(x1 + 5, yTarget + (yTarget < yEntry ? -5 : 13), `TP ${fmtPrice.format(target)}`, positive);
+      markup += svgCircle(p3?.x ?? x2, yTarget, 5, positive);
+    }
+    markup += svgCircle(p1.x, yEntry, 5, '#edf3fa');
+    if (Number.isFinite(stop) && Number.isFinite(target)) {
+      const metrics = calcPositionMetrics(drawing.type, entry, stop, target);
+      const rr = metrics.valid ? `R:R 1:${metrics.rr.toFixed(2)}` : 'Level SL/TP tidak valid';
+      const color = metrics.valid ? '#b8c8da' : '#ff9da6';
+      markup += svgText(x1 + 5, Math.min(height - 6, Math.max(13, Math.max(Number.isFinite(yTarget) ? yTarget : yEntry, Number.isFinite(yStop) ? yStop : yEntry) + 15)), rr, color);
+    }
+    return markup;
+  }
+
+  const point2 = points[1];
   const p2 = coordForPoint(point2);
   if (!p2) return '';
 
@@ -504,34 +561,12 @@ function redrawOneDrawing(drawing, width, height) {
     const x1 = Math.min(p1.x, p2.x);
     const x2 = Math.max(p1.x, p2.x);
     const delta = p2.y - p1.y;
-    const deltaPrice = point2.price - drawing.points[0].price;
+    const deltaPrice = point2.price - points[0].price;
     return FIB_LEVELS.map((level) => {
       const y = p1.y + delta * level;
-      const price = drawing.points[0].price + deltaPrice * level;
+      const price = points[0].price + deltaPrice * level;
       return `${svgLine(x1, y, x2, y, level === 0.5 ? '#e6bd65' : '#7d91a8', level === 0.5 ? 1.4 : 1, '4 3')}${svgText(x2 + 5, y - 3, `${(level * 100).toFixed(1)}% · ${fmtPrice.format(price)}`, level === 0.5 ? '#f0d28a' : '#b1c0d0')}`;
     }).join('');
-  }
-
-  if (drawing.type === 'long' || drawing.type === 'short') {
-    const entry = drawing.points[0].price;
-    const rawSecond = point2.price;
-    const isLong = drawing.type === 'long';
-    const stop = isLong ? Math.min(rawSecond, entry * 0.999999) : Math.max(rawSecond, entry * 1.000001);
-    const risk = Math.abs(entry - stop);
-    const target = isLong ? entry + risk * 2 : entry - risk * 2;
-    const yEntry = chartObjects.candleSeries.priceToCoordinate(entry);
-    const yStop = chartObjects.candleSeries.priceToCoordinate(stop);
-    const yTarget = chartObjects.candleSeries.priceToCoordinate(target);
-    if (![yEntry, yStop, yTarget].every(Number.isFinite)) return '';
-    const x1 = Math.min(p1.x, p2.x);
-    const x2 = Math.max(x1 + 50, p2.x);
-    const targetTop = Math.min(yEntry, yTarget);
-    const targetHeight = Math.max(1, Math.abs(yEntry - yTarget));
-    const stopTop = Math.min(yEntry, yStop);
-    const stopHeight = Math.max(1, Math.abs(yEntry - yStop));
-    const positive = '#42d3a0';
-    const negative = '#ec6e79';
-    return `<rect x="${x1}" y="${targetTop}" width="${x2 - x1}" height="${targetHeight}" fill="${positive}" fill-opacity=".13" stroke="${positive}" stroke-opacity=".4"/><rect x="${x1}" y="${stopTop}" width="${x2 - x1}" height="${stopHeight}" fill="${negative}" fill-opacity=".13" stroke="${negative}" stroke-opacity=".45"/>${svgLine(x1, yEntry, x2, yEntry, '#edf3fa', 1, '3 3')}${svgText(x1 + 5, targetTop + 13, `${isLong ? 'LONG' : 'SHORT'} · target ${fmtPrice.format(target)}`, positive)}${svgText(x1 + 5, stopTop + stopHeight - 4, `stop ${fmtPrice.format(stop)} · R:R 1:2`, negative)}`;
   }
   return '';
 }
@@ -559,8 +594,60 @@ function pointAtPointer(event) {
   const bar = displayBars[idx];
   return bar ? { time: bar.time, price } : null;
 }
+function validPositionDrawing(type, points) {
+  if (!Array.isArray(points) || points.length < 3) return false;
+  return calcPositionMetrics(type, points[0]?.price, points[1]?.price, points[2]?.price).valid;
+}
+function copyPositionDrawingToOrder(drawing, { notify = true } = {}) {
+  if (!drawing || !['long', 'short'].includes(drawing.type) || !validPositionDrawing(drawing.type, drawing.points)) return;
+  const [entry, stop, target] = drawing.points;
+  setTradeSide(drawing.type);
+  $('order-sl').value = String(Number(stop.price.toPrecision(12)));
+  $('order-tp').value = String(Number(target.price.toPrecision(12)));
+  updateOrderPreview();
+  if (notify) {
+    setOrderMessage(`SL dan TP dari gambar ${drawing.type.toUpperCase()} disalin ke ticket. Ticket BUY/SELL dieksekusi pada close candle replay saat ini, bukan pada harga entry gambar (${fmtPrice.format(entry.price)}); pastikan SL/TP berada di sisi yang benar terhadap harga aktif.`, 'success');
+    $('order-form').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+function findPositionHandleNearPointer(event, maxDistance = 13) {
+  const box = $('price-plot').getBoundingClientRect();
+  const x = event.clientX - box.left;
+  const y = event.clientY - box.top;
+  let best = null;
+  for (const drawing of getDrawings()) {
+    if (!['long', 'short'].includes(drawing.type)) continue;
+    const count = Math.min(3, drawing.points?.length || 0);
+    for (let pointIndex = 0; pointIndex < count; pointIndex++) {
+      const coords = coordForPoint(drawing.points[pointIndex]);
+      if (!coords) continue;
+      const distance = Math.hypot(coords.x - x, coords.y - y);
+      if (distance <= maxDistance && (!best || distance < best.distance)) {
+        best = { drawingId: drawing.id, pointIndex, distance };
+      }
+    }
+  }
+  return best;
+}
 function handlePlotPointerDown(event) {
-  if (activeTool === 'cursor' || !state.session || loading) return;
+  if (!state.session || loading) return;
+  if (activeTool === 'cursor') {
+    const handle = findPositionHandleNearPointer(event);
+    if (!handle) return;
+    const drawing = getDrawings().find((item) => item.id === handle.drawingId);
+    if (!drawing) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    draggingDrawingHandle = {
+      drawingId: drawing.id,
+      pointIndex: handle.pointIndex,
+      originalPoint: { ...drawing.points[handle.pointIndex] },
+    };
+    try { $('price-plot').setPointerCapture(event.pointerId); } catch { /* Pointer capture is an enhancement. */ }
+    $('price-plot').style.cursor = 'grabbing';
+    $('drawing-hint').textContent = `Mengubah ${handle.pointIndex === 0 ? 'ENTRY' : handle.pointIndex === 1 ? 'SL' : 'TP'} · lepas untuk menyimpan.`;
+    return;
+  }
   const point = pointAtPointer(event);
   if (!point) return;
   event.preventDefault();
@@ -572,11 +659,42 @@ function handlePlotPointerDown(event) {
   }
   if (!pendingDrawPoint) {
     pendingDrawPoint = point;
-    previewPoint = { id: 'preview', type: activeTool, points: [point, point] };
-    $('drawing-hint').textContent = activeTool === 'fib' ? 'Klik titik kedua untuk rentang Fibonacci.' : 'Klik titik kedua untuk menyelesaikan gambar.';
+    pendingSecondDrawPoint = null;
+    previewPoint = { id: 'preview', type: activeTool, points: ['long', 'short'].includes(activeTool) ? [point] : [point, point] };
+    $('drawing-hint').textContent = ['long', 'short'].includes(activeTool)
+      ? 'Langkah 1/3: klik harga ENTRY, berikutnya klik SL.'
+      : activeTool === 'fib' ? 'Klik titik kedua untuk rentang Fibonacci.' : 'Klik titik kedua untuk menyelesaikan gambar.';
     renderDrawings();
     return;
   }
+
+  if (['long', 'short'].includes(activeTool)) {
+    if (!pendingSecondDrawPoint) {
+      const sideOk = activeTool === 'long' ? point.price < pendingDrawPoint.price : point.price > pendingDrawPoint.price;
+      if (!sideOk) {
+        $('drawing-hint').textContent = activeTool === 'long' ? 'SL Long harus di bawah ENTRY. Klik ulang pada harga SL.' : 'SL Short harus di atas ENTRY. Klik ulang pada harga SL.';
+        return;
+      }
+      pendingSecondDrawPoint = point;
+      previewPoint = { id: 'preview', type: activeTool, points: [pendingDrawPoint, pendingSecondDrawPoint] };
+      $('drawing-hint').textContent = 'Langkah 3/3: klik harga TP. Besar RR bebas mengikuti titik pilihanmu.';
+      renderDrawings();
+      return;
+    }
+    const points = [pendingDrawPoint, pendingSecondDrawPoint, point];
+    if (!validPositionDrawing(activeTool, points)) {
+      $('drawing-hint').textContent = activeTool === 'long' ? 'TP Long harus di atas ENTRY. Klik ulang pada harga TP.' : 'TP Short harus di bawah ENTRY. Klik ulang pada harga TP.';
+      return;
+    }
+    const drawing = { id: crypto.randomUUID?.() || String(Date.now()), type: activeTool, points };
+    getDrawings().push(drawing);
+    redoStack = [];
+    finishDrawing();
+    copyPositionDrawingToOrder(drawing);
+    toast(`${drawing.type.toUpperCase()} plan disimpan · R:R 1:${calcPositionMetrics(drawing.type, points[0].price, points[1].price, points[2].price).rr.toFixed(2)}. Level TP/SL bisa digeser dengan Cursor.`, 'success', 5000);
+    return;
+  }
+
   const drawing = { id: crypto.randomUUID?.() || String(Date.now()), type: activeTool, points: [pendingDrawPoint, point] };
   getDrawings().push(drawing);
   redoStack = [];
@@ -584,27 +702,80 @@ function handlePlotPointerDown(event) {
   saveDrawings();
 }
 function handlePlotPointerMove(event) {
+  if (draggingDrawingHandle && state.session) {
+    const point = pointAtPointer(event);
+    if (!point) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    const drawing = getDrawings().find((item) => item.id === draggingDrawingHandle.drawingId);
+    if (!drawing) return;
+    drawing.points[draggingDrawingHandle.pointIndex] = point;
+    previewPoint = null;
+    renderDrawings();
+    return;
+  }
+  if (activeTool === 'cursor' && state.session) {
+    $('price-plot').style.cursor = findPositionHandleNearPointer(event) ? 'grab' : '';
+    return;
+  }
   if (!pendingDrawPoint || activeTool === 'cursor' || !state.session) return;
   const point = pointAtPointer(event);
   if (!point) return;
-  previewPoint = { id: 'preview', type: activeTool, points: [pendingDrawPoint, point] };
+  if (['long', 'short'].includes(activeTool)) {
+    previewPoint = {
+      id: 'preview', type: activeTool,
+      points: pendingSecondDrawPoint ? [pendingDrawPoint, pendingSecondDrawPoint, point] : [pendingDrawPoint, point],
+    };
+  } else {
+    previewPoint = { id: 'preview', type: activeTool, points: [pendingDrawPoint, point] };
+  }
   renderDrawings();
+}
+function handlePlotPointerUp(event) {
+  if (!draggingDrawingHandle) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  const drag = draggingDrawingHandle;
+  const drawing = getDrawings().find((item) => item.id === drag.drawingId);
+  draggingDrawingHandle = null;
+  $('price-plot').style.cursor = '';
+  if (!drawing) return;
+  if (!validPositionDrawing(drawing.type, drawing.points)) {
+    drawing.points[drag.pointIndex] = drag.originalPoint;
+    toast('Level tidak valid. Long memerlukan SL < Entry < TP; Short memerlukan TP < Entry < SL. Perubahan dibatalkan.', 'error', 5000);
+  } else {
+    copyPositionDrawingToOrder(drawing, { notify: false });
+    toast(`Level ${drawing.type.toUpperCase()} diperbarui. R:R 1:${calcPositionMetrics(drawing.type, drawing.points[0].price, drawing.points[1].price, drawing.points[2].price).rr.toFixed(2)}.`, 'success');
+  }
+  $('drawing-hint').textContent = 'Cursor aktif · tarik handle ENTRY, SL, atau TP untuk mengubah gambar. Pilih Buy/Long atau Sell/Short untuk simulasi pada close candle aktif.';
+  renderDrawings();
+  saveDrawings();
 }
 function finishDrawing() {
   pendingDrawPoint = null;
+  pendingSecondDrawPoint = null;
   previewPoint = null;
   activeTool = 'cursor';
   document.querySelectorAll('[data-tool]').forEach((button) => button.classList.toggle('active', button.dataset.tool === activeTool));
-  $('drawing-hint').textContent = 'Pilih alat gambar untuk mulai.';
+  $('drawing-hint').textContent = 'Cursor aktif · tarik handle ENTRY, SL, atau TP pada gambar Long/Short untuk mengubah level.';
   renderDrawings();
   saveDrawings();
 }
 function chooseDrawingTool(tool) {
   activeTool = tool;
   pendingDrawPoint = null;
+  pendingSecondDrawPoint = null;
   previewPoint = null;
+  draggingDrawingHandle = null;
   document.querySelectorAll('[data-tool]').forEach((button) => button.classList.toggle('active', button.dataset.tool === tool));
-  const hints = { cursor: 'Pilih alat gambar untuk mulai.', horizontal: 'Klik chart untuk menaruh garis horizontal.', trend: 'Klik dua titik untuk menggambar trend line.', fib: 'Klik swing pertama lalu swing kedua untuk Fibonacci.', long: 'Klik entry lalu titik stop untuk menggambar Long Position (target default 2R).', short: 'Klik entry lalu titik stop untuk menggambar Short Position (target default 2R).' };
+  const hints = {
+    cursor: 'Cursor · tarik handle ENTRY / SL / TP untuk mengubah gambar Long/Short.',
+    horizontal: 'Klik chart untuk menaruh garis horizontal.',
+    trend: 'Klik dua titik untuk menggambar trend line.',
+    fib: 'Klik swing pertama lalu swing kedua untuk Fibonacci.',
+    long: '3 klik: ENTRY → SL → TP. RR bebas; setelah selesai, tarik handle untuk mengubah level.',
+    short: '3 klik: ENTRY → SL → TP. RR bebas; setelah selesai, tarik handle untuk mengubah level.',
+  };
   $('drawing-hint').textContent = hints[tool] || '';
   renderDrawings();
 }

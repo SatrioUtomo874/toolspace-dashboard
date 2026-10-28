@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseKlineCsv, aggregateCandles, TIMEFRAME_MS, ema, rsi, findIndexAtOrBefore, findIndexAtOrAfter, calcTradeStats, calcPnl, estimateLiquidation, formatWIB, sanitizePair } from '../core.js';
+import { parseKlineCsv, aggregateCandles, TIMEFRAME_MS, ema, rsi, findIndexAtOrBefore, findIndexAtOrAfter, calcTradeStats, calcPnl, calcPositionMetrics, estimateLiquidation, formatWIB, sanitizePair } from '../core.js';
 
 test('parseKlineCsv skips a header and normalizes timestamps', () => {
   const csv = 'open_time,open,high,low,close,volume,close_time\n1704067200000,100,105,99,103,12,1704067499999\n1704067500000,103,104,101,102,15,1704067799999';
@@ -116,4 +116,26 @@ test('daily aggregation follows UTC boundaries while display timezone remains WI
 
 test('aggregateCandles rejects unsupported timeframe', () => {
   assert.throws(() => aggregateCandles([], '2h'), /Unsupported timeframe/);
+});
+
+
+test('position drawing calculates user-defined Long and Short risk/reward, not a fixed 1:2', () => {
+  const long = calcPositionMetrics('long', 100, 95, 115);
+  assert.equal(long.valid, true);
+  assert.equal(long.riskPerUnit, 5);
+  assert.equal(long.rewardPerUnit, 15);
+  assert.equal(long.rr, 3);
+
+  const short = calcPositionMetrics('short', 100, 108, 96);
+  assert.equal(short.valid, true);
+  assert.equal(short.riskPerUnit, 8);
+  assert.equal(short.rewardPerUnit, 4);
+  assert.equal(short.rr, 0.5);
+});
+
+test('position drawing rejects SL/TP on the wrong side of entry', () => {
+  assert.equal(calcPositionMetrics('long', 100, 101, 110).valid, false);
+  assert.equal(calcPositionMetrics('long', 100, 95, 99).valid, false);
+  assert.equal(calcPositionMetrics('short', 100, 99, 90).valid, false);
+  assert.equal(calcPositionMetrics('short', 100, 105, 101).valid, false);
 });

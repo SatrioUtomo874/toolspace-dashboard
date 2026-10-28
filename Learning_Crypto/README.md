@@ -10,7 +10,7 @@ Learning Crypto is a browser-based educational chart replay and paper-trading to
 - **Clear time labels:** chart ticks are formatted for Asia/Jakarta (UTC+7 / WIB); the top chart label shows the selected timeframe bucket and how far its candle has developed; the replay clock shows the active M5 timestamp; crosshair hover shows the selected chart candle timestamp.
 - Manual `Next M5 Candle`, `Next 5 M5`, and `Next 10 M5` controls. No timer/autoplay. The replay always advances on M5 even while the chart is switched to M15/H1/H4/D1; a selected higher-timeframe candle develops incrementally as its underlying M5 bars are revealed.
 - Candlesticks on M5/M15/H1/H4/D1, EMA 20, EMA 50, Volume, and RSI 14 calculated on the currently selected timeframe.
-- Chart drawings: horizontal line, trend line, Fibonacci retracement, and educational Long/Short position drawings. Drawing state is stored locally by replay session and pair. Undo/redo and clear drawings are separate from reset session.
+- Chart drawings: horizontal line, trend line, Fibonacci retracement, and editable Long/Short position drawings. Place a position drawing in three clicks (ENTRY → SL → TP), so any valid risk/reward ratio is supported—there is no forced 1:2 target. With Cursor active, drag the ENTRY, SL, or TP handle to edit its price/time. When a position drawing is completed or edited, its side and SL/TP are copied into the paper-order ticket; the ticket still enters at the currently revealed M5 close, so check that copied levels are valid relative to current market price before opening the simulated trade. Drawing state is stored locally by replay session and pair. Undo/redo and clear drawings are separate from reset session.
 - Virtual paper account: 10,000 USDT starting balance, Long/Short, margin sizing, 1×–50× leverage, optional SL/TP, approximate liquidation, adjustable fee/slippage assumptions, automatic position checks, account/journal metrics, and JSON export.
 - A BTCUSDT mini-chart context that is limited to candles at or before the replay time when its archive is available.
 - Switching pairs does not clear the account, closed trades, or statistics. A reset requires confirmation and starts a new virtual session. Reset-session and clear-drawings actions are separate.
@@ -55,14 +55,14 @@ The first replay candle is chosen randomly with sufficient M5 candle context rem
 - Entry fees are debited when opening, exit fees when closing. Fee bps and slippage bps can be configured; the defaults are examples, not current published Binance fee claims.
 - SL/TP start being evaluated on candles after the entry candle. If SL and TP are both touched in one 5m candle, SL wins as the conservative rule. If the approximate liquidation level is crossed, liquidation takes priority.
 - Funding and exact exchange maintenance-margin brackets are not modelled. The liquidation level is explicitly an approximate educational estimate.
-- Drawings are analysis annotations and never submit orders.
+- Drawings are analysis annotations and never submit orders. A valid Long/Short drawing copies its SL/TP and side to the simulated-order ticket for convenience, but the simulated order still fills at the current replay candle close; the drawing entry itself is not a limit order.
 
 ## Keyboard and basic usage
 
 - `N`: reveal the next M5 candle, regardless of the chart timeframe selected.
 - `Esc`: cancel the active drawing tool.
 - `Ctrl+Z` / `Cmd+Z`: undo the latest drawing.
-- The primary replay control is `Next Candle`; no hidden timer reveals bars automatically.
+- The primary replay control is `Next Candle`; no hidden timer reveals bars automatically. Draw Long/Short position plans with three chart clicks: entry, stop-loss, take-profit. The displayed R:R is calculated from your chosen prices and can be any valid ratio; drag handles to adjust the three points after drawing.
 - Changing the active pair keeps closed trade history, balance, and stats; it does not reset the session.
 - `Reset sesi` asks for confirmation and resets virtual balance, positions, journal, and session statistics.
 - `Clear` under the drawing toolbar removes drawings only; it does not touch balance or journal.
