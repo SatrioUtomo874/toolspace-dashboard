@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b0e14">
+  <meta name="description" content="Latihan analisis chart dan paper trading menggunakan candle historis Binance Futures 5 menit.">
+  <meta name="toolspace:title" content="Learning Crypto">
+  <meta name="toolspace:category" content="Trading & Data">
+  <meta name="toolspace:status" content="ready">
+  <meta name="toolspace:status-label" content="MVP Eksperimental">
+  <meta name="toolspace:tag" content="Historical Replay · Paper Trading">
+  <meta name="toolspace:symbol" content="LC">
+  <meta name="toolspace:art" content="default">
+  <meta name="toolspace:thumbnail" content="assets/thumbnail.svg">
+  <title>Learning Crypto — Historical Replay Lab</title>
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <script defer src="https://unpkg.com/lightweight-charts@5.0.8/dist/lightweight-charts.standalone.production.js"></script>
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <div class="app-frame">
+    <header class="topbar">
+      <a href="./" class="brand" aria-label="Learning Crypto home">
+        <span class="brand-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17.5 8.3 13l3.1 2.4L19.8 6"/><path d="M14.8 6h5v5"/></svg></span>
+        <span class="brand-copy"><strong>learning<span>_</span>crypto</strong><small>HISTORICAL REPLAY LAB</small></span>
+      </a>
+      <div class="market-head">
+        <label class="visually-hidden" for="active-pair">Pair aktif</label>
+        <select id="active-pair" class="pair-select" aria-label="Ganti pair"></select>
+        <span class="market-chip">USDⓈ-M FUTURES</span>
+        <span class="timeframe-chip">5m</span>
+      </div>
+      <div class="topbar-right">
+        <span id="session-year-chip" class="subtle-chip">Belum mulai</span>
+        <button id="open-settings" class="icon-button" type="button" title="Pengaturan sesi" aria-label="Pengaturan sesi"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-1.8 3.1-.2-.1a1.7 1.7 0 0 0-1.8.2l-.2.1h-3.6l-.1-.2a1.7 1.7 0 0 0-1.5-1.1 1.7 1.7 0 0 0-1.2.3l-.2.1-3.1-1.8.1-.2a1.7 1.7 0 0 0-.2-1.8l-.1-.2v-3.6l.2-.1a1.7 1.7 0 0 0 1.1-1.5 1.7 1.7 0 0 0-.3-1.2l-.1-.2 1.8-3.1.2.1a1.7 1.7 0 0 0 1.8-.2l.2-.1h3.6l.1.2a1.7 1.7 0 0 0 1.5 1.1 1.7 1.7 0 0 0 1.2-.3l.2-.1 3.1 1.8-.1.2a1.7 1.7 0 0 0 .2 1.8l.1.2v3.6z"/></svg></button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="chart-column" aria-label="Chart replay">
+        <div class="chart-summary-bar">
+          <div class="symbol-summary">
+            <span id="symbol-avatar" class="coin-avatar">B</span>
+            <div><strong id="chart-symbol-title">BTCUSDT</strong><small>Binance USDⓈ-M · Candlestick · 5 menit</small></div>
+          </div>
+          <div class="ohlc-line" id="ohlc-line" aria-live="polite">O — H — L — C — Vol —</div>
+          <div class="last-price-block"><strong id="last-price">—</strong><small id="last-change">Data historis</small></div>
+        </div>
+
+        <div class="drawing-toolbar" role="toolbar" aria-label="Alat gambar chart">
+          <span class="toolbar-label">DRAW</span>
+          <button type="button" class="tool-button active" data-tool="cursor" title="Cursor / pilih"><span>↖</span><em>Cursor</em></button>
+          <button type="button" class="tool-button" data-tool="horizontal" title="Garis horizontal"><span>―</span><em>H-Line</em></button>
+          <button type="button" class="tool-button" data-tool="trend" title="Trend line"><span>／</span><em>Trend</em></button>
+          <button type="button" class="tool-button" data-tool="fib" title="Fibonacci retracement"><span>⌁</span><em>Fibonacci</em></button>
+          <button type="button" class="tool-button" data-tool="long" title="Long position drawing"><span class="long-icon">↗</span><em>Long</em></button>
+          <button type="button" class="tool-button" data-tool="short" title="Short position drawing"><span class="short-icon">↘</span><em>Short</em></button>
+          <span class="toolbar-divider"></span>
+          <button type="button" id="undo-drawing" class="tool-button compact" title="Undo gambar"><span>↶</span><em>Undo</em></button>
+          <button type="button" id="redo-drawing" class="tool-button compact" title="Redo gambar"><span>↷</span><em>Redo</em></button>
+          <button type="button" id="clear-drawings" class="tool-button compact danger-text" title="Hapus semua gambar"><span>⌫</span><em>Clear</em></button>
+          <span id="drawing-hint" class="drawing-hint">Pilih alat gambar untuk mulai.</span>
+        </div>
+
+        <section class="chart-card price-card" aria-label="Harga dan EMA">
+          <div class="pane-heading"><span>PRICE <small>· USDT</small></span><span class="indicator-toggles"><label><input type="checkbox" id="toggle-ema20" checked> <i class="ema20-dot"></i> EMA 20</label><label><input type="checkbox" id="toggle-ema50" checked> <i class="ema50-dot"></i> EMA 50</label></span><span id="main-time-label" class="pane-time">Waktu candle: —</span></div>
+          <div id="price-plot" class="chart-plot"><div id="price-chart" class="chart-host"></div><svg id="drawing-layer" class="drawing-layer" aria-hidden="true"></svg><div id="chart-empty" class="chart-empty"><span class="empty-icon">◌</span><strong>Belum ada chart</strong><span>Pilih dataset tahun, bulan, dan pair untuk memulai latihan.</span></div></div>
+          <div class="time-note"><span><span class="status-dot"></span> HISTORICAL REPLAY</span><span id="crosshair-time">Arahkan kursor ke candle untuk melihat waktunya</span><span class="timezone-chip">UTC+7 · WIB</span></div>
+        </section>
+
+        <section class="chart-card indicator-card volume-card" aria-label="Volume">
+          <div class="pane-heading"><span>VOLUME</span><label class="indicator-toggle"><input type="checkbox" id="toggle-volume" checked> Tampilkan</label><span id="volume-time-label" class="pane-time">5m</span></div>
+          <div id="volume-chart" class="indicator-plot"></div>
+        </section>
+
+        <section class="chart-card indicator-card rsi-card" aria-label="Relative Strength Index">
+          <div class="pane-heading"><span>RSI <small>· 14</small></span><label class="indicator-toggle"><input type="checkbox" id="toggle-rsi" checked> Tampilkan</label><span id="rsi-value" class="pane-time">RSI —</span></div>
+          <div id="rsi-chart" class="indicator-plot"></div>
+        </section>
+
+        <div class="replay-console">
+          <div class="replay-clock"><span class="console-label">REPLAY TIME · WIB</span><strong id="replay-time">Belum ada sesi</strong><small id="replay-progress">Candle 0 dari 0</small></div>
+          <div class="replay-actions">
+            <button id="reset-session" type="button" class="button button-secondary"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11a9 9 0 1 1 2.6 6.4M3 4v7h7"/></svg> Reset sesi</button>
+            <button id="next-5" type="button" class="button button-secondary" disabled>Next 5</button>
+            <button id="next-10" type="button" class="button button-secondary" disabled>Next 10</button>
+            <button id="next-candle" type="button" class="button button-primary" disabled>Next Candle <span>→</span></button>
+          </div>
+        </div>
+
+        <div class="disclosure-note"><strong>Replay edukasi.</strong> Data chart bersumber dari arsip publik Binance, bukan candle buatan. MVP ini mengunduh arsip bulanan ke browser untuk diproses; candle masa depan disembunyikan di tampilan, tetapi belum dilindungi dari pemeriksaan teknis melalui DevTools/network. Tidak ada order sungguhan.</div>
+      </section>
+
+      <aside class="side-column" aria-label="Trading simulator and stats">
+        <section class="panel-card account-card">
+          <div class="panel-title-row"><div><span class="eyebrow">PAPER ACCOUNT</span><h2>Saldo simulasi</h2></div><span class="virtual-pill">VIRTUAL</span></div>
+          <div class="equity-value" id="equity-value">10,000.00 <small>USDT</small></div>
+          <div class="account-mini-grid"><div><span>Balance</span><strong id="balance-value">10,000.00</strong></div><div><span>Unrealized PnL</span><strong id="unrealized-value">0.00</strong></div><div><span>Margin terpakai</span><strong id="used-margin-value">0.00</strong></div><div><span>Free margin</span><strong id="free-margin-value">10,000.00</strong></div></div>
+          <div class="equity-strip"><span>REALIZED PNL</span><strong id="realized-value">+0.00 USDT</strong></div>
+        </section>
+
+        <section class="panel-card trade-card">
+          <div class="panel-title-row"><div><span class="eyebrow">PAPER TRADING</span><h2>Buat simulasi order</h2></div><span class="leverage-cap">MAX 50×</span></div>
+          <div class="side-toggle" role="group" aria-label="Arah posisi"><button id="side-long" type="button" class="side-button long selected" aria-pressed="true">BUY / LONG</button><button id="side-short" type="button" class="side-button short" aria-pressed="false">SELL / SHORT</button></div>
+          <form id="order-form" class="order-form">
+            <div class="form-grid two-cols"><label>Margin (USDT)<input id="order-margin" type="number" value="100" min="1" step="1" inputmode="decimal" required></label><label>Leverage<select id="order-leverage"><option>1</option><option>2</option><option>3</option><option>5</option><option>10</option><option>20</option><option>25</option><option>50</option></select></label></div>
+            <div class="form-grid two-cols"><label>Stop Loss<input id="order-sl" type="number" min="0" step="any" placeholder="Opsional" inputmode="decimal"></label><label>Take Profit<input id="order-tp" type="number" min="0" step="any" placeholder="Opsional" inputmode="decimal"></label></div>
+            <div class="order-preview"><div><span>Harga entry (candle close)</span><strong id="preview-entry">—</strong></div><div><span>Notional</span><strong id="preview-notional">—</strong></div><div><span>Quantity</span><strong id="preview-qty">—</strong></div><div><span>Risk / Reward</span><strong id="preview-rr">—</strong></div></div>
+            <button id="place-order" type="submit" class="button button-primary full-width" disabled>Buka posisi simulasi</button>
+          </form>
+          <div id="order-message" class="inline-message" role="status">Mulai sesi untuk mengaktifkan paper trading.</div>
+          <div class="fee-row"><label>Fee (bps)<input id="fee-bps" type="number" value="5" min="0" max="100" step="1"></label><label>Slippage (bps)<input id="slippage-bps" type="number" value="2" min="0" max="100" step="1"></label></div>
+          <p class="tiny-note">Fee 5 bps dan slippage 2 bps adalah asumsi edukasional yang bisa diubah, bukan klaim tarif Binance saat ini.</p>
+        </section>
+
+        <section class="panel-card context-card">
+          <div class="panel-title-row"><div><span class="eyebrow">MARKET CONTEXT</span><h2>Bitcoin reference</h2></div><span class="historical-pill">HISTORIS</span></div>
+          <div class="context-main"><div><strong>BTCUSDT</strong><small id="btc-context-time">Waktu sinkron: —</small></div><div class="context-price"><strong id="btc-context-price">—</strong><small id="btc-context-change">—</small></div></div>
+          <svg id="btc-sparkline" class="sparkline" viewBox="0 0 300 50" preserveAspectRatio="none" role="img" aria-label="Mini chart historis BTC"></svg>
+          <div id="btc-context-message" class="tiny-note">BTC akan dimuat dari arsip bulan dan tahun yang sama. Chart konteks tidak menampilkan candle setelah waktu replay.</div>
+          <div class="context-divider"></div>
+          <div class="context-main"><div><strong id="selected-context-symbol">Pair aktif</strong><small>Pair latihan</small></div><div class="context-price"><strong id="selected-context-price">—</strong><small id="selected-context-change">—</small></div></div>
+        </section>
+
+        <section class="panel-card stats-card">
+          <div class="panel-title-row"><div><span class="eyebrow">SESSION ANALYTICS</span><h2>Statistik latihan</h2></div><button id="export-session" type="button" class="text-button">Export JSON</button></div>
+          <div class="stats-grid"><div><span>Closed trades</span><strong id="stat-trades">0</strong></div><div><span>Win rate</span><strong id="stat-winrate">—</strong></div><div><span>Profit factor</span><strong id="stat-pf">—</strong></div><div><span>Max drawdown</span><strong id="stat-dd">0.00%</strong></div><div><span>Avg win</span><strong id="stat-avgwin">—</strong></div><div><span>Avg loss</span><strong id="stat-avgloss">—</strong></div><div><span>Expectancy</span><strong id="stat-expectancy">—</strong></div><div><span>Avg R</span><strong id="stat-avgr">—</strong></div></div>
+          <div class="journal-head"><strong>Trade journal</strong><span id="journal-count">0 catatan</span></div>
+          <div id="open-positions" class="open-positions"><div class="empty-list">Belum ada posisi aktif.</div></div>
+          <div id="trade-journal" class="trade-journal"><div class="empty-list">Hasil trade akan tercatat otomatis di sini.</div></div>
+        </section>
+
+        <section class="panel-card help-card"><span class="eyebrow">SHORTCUTS</span><div><kbd>N</kbd> Next candle</div><div><kbd>Esc</kbd> Batalkan alat gambar</div><div><kbd>Ctrl</kbd> + <kbd>Z</kbd> Undo gambar</div><a href="https://data.binance.vision/" target="_blank" rel="noreferrer">Sumber arsip historis Binance ↗</a></section>
+      </aside>
+    </main>
+
+    <footer class="app-footer"><span>Learning Crypto · Historical Replay Lab</span><span>Chart powered by <a href="https://www.tradingview.com/lightweight-charts/" target="_blank" rel="noreferrer">TradingView Lightweight Charts™</a></span><span>Data candle: Binance Public Data · WIB</span></footer>
+  </div>
+
+  <div id="welcome-overlay" class="welcome-overlay" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
+    <div class="welcome-card">
+      <div class="welcome-brand"><span class="brand-mark large"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17.5 8.3 13l3.1 2.4L19.8 6"/><path d="M14.8 6h5v5"/></svg></span><span>LEARNING_CRYPTO <i>• REPLAY LAB</i></span></div>
+      <div class="welcome-copy"><span class="eyebrow">TRAIN ON REAL HISTORY</span><h1>Latihan membaca chart.<br><span>Bukan menebak masa depan.</span></h1><p>Pilih dataset historis Binance, analisis candle 5 menit satu per satu, dan catat keputusan trading dengan saldo virtual.</p></div>
+      <form id="start-form" class="start-form">
+        <div class="form-grid two-cols"><label>Tahun historis<select id="setup-year"><option value="2023">2023</option><option value="2024" selected>2024</option><option value="2025">2025</option></select></label><label>Bulan data<select id="setup-month"><option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option><option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option><option value="7">Juli</option><option value="8">Agustus</option><option value="9">September</option><option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option></select></label></div>
+        <div class="form-grid two-cols"><label>Pair utama<select id="setup-pair"><option>BTCUSDT</option><option>ETHUSDT</option><option>BNBUSDT</option><option>SOLUSDT</option><option>XRPUSDT</option><option>ADAUSDT</option><option>DOGEUSDT</option><option>LINKUSDT</option><option>AVAXUSDT</option><option>TRXUSDT</option></select></label><label>Mode awal<select id="setup-mode"><option value="random">Mulai acak (disarankan)</option><option value="specific">Pilih tanggal & jam</option></select></label></div>
+        <label id="start-at-wrap" class="start-at-label" hidden>Mulai pada waktu (WIB)<input id="setup-start-at" type="datetime-local" step="300"><small>Waktu menunjukkan open time candle 5 menit. Jika tidak tepat pada candle, akan dipilih candle tersedia berikutnya.</small></label>
+        <div class="welcome-facts"><div><span>Saldo virtual</span><strong>10,000 USDT</strong></div><div><span>Leverage maks.</span><strong>50×</strong></div><div><span>Timeframe</span><strong>5 menit</strong></div></div>
+        <button id="start-session" type="submit" class="button button-primary full-width">Mulai latihan <span>→</span></button>
+        <button id="resume-session" type="button" class="button button-secondary full-width" hidden>Lanjutkan sesi sebelumnya</button>
+        <div id="start-message" class="start-message" role="status">Data satu bulan akan diambil dari arsip publik Binance. Tidak perlu API key.</div>
+      </form>
+      <div class="welcome-bottom"><span>● Data historis asli</span><span>● Tanpa order sungguhan</span><span>● Sesi tersimpan di browser</span></div>
+    </div>
+  </div>
+
+  <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+  <noscript>Learning Crypto membutuhkan JavaScript untuk menampilkan chart dan mengelola replay.</noscript>
+</body>
+</html>
