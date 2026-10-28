@@ -1,356 +1,410 @@
 'use strict';
 
-const CASES = [
-  {
-    id: 'donut-terakhir', number: 'CASE 001', title: 'Siapa mengambil donat terakhir?', shortTitle: 'Donat terakhir', emoji: '🍩', category: 'KANTOR', difficulty: 'MUDAH', location: 'Ruang istirahat kantor', type: 'MISTERI MAKANAN',
-    premise: 'Donat cokelat terakhir lenyap tepat sebelum rapat pukul 10.15. Tiga orang punya cerita berbeda—dan satu cerita tidak cocok dengan bukti.',
-    objective: 'Temukan siapa yang memakan donat, bukan sekadar siapa yang sempat masuk pantry.',
-    suspects: [
-      { id: 'kiko', name: 'Kiko', emoji: '🧑🏻‍💻', role: 'Anak meeting', alibi: '“Aku terus di depan laptop sejak pukul 10.00.”' },
-      { id: 'nara', name: 'Nara', emoji: '👩🏽‍🎨', role: 'Tim desain', alibi: '“Aku cuma mengambil air di pantry.”' },
-      { id: 'bima', name: 'Bima', emoji: '🧢', role: 'Anak lapangan', alibi: '“Aku di luar gedung sampai pukul 10.15.”' }
-    ], answer: 'kiko',
-    clues: [
-      { id: 'audio', icon: '🎙️', title: 'Rekaman meeting', teaser: 'Ada suara yang tidak seharusnya muncul.', detail: 'Pukul 10.09 mikrofon laptop Kiko menangkap suara bungkus makanan diremas, lalu suara kunyahan. Kiko mengaku tidak menyentuh makanan sama sekali.', evidence: 'KUAT' },
-      { id: 'crumbs', icon: '🔎', title: 'Remah di meja', teaser: 'Sesuatu tertinggal di dekat keyboard.', detail: 'Ada remah berwarna cokelat tepat di bawah keyboard Kiko. Tisu di sampingnya memiliki noda cokelat yang masih baru.', evidence: 'KUAT' },
-      { id: 'pantry', icon: '🚪', title: 'Sensor pantry', teaser: 'Pintu pantry sempat terbuka.', detail: 'Sensor mencatat pintu terbuka pukul 10.06–10.07. Gelas air milik Nara ditemukan di dekat dispenser. Ini membuktikan ia mampir, tetapi tidak membuktikan ia mengambil donat.', evidence: 'KONTEKS' }
-    ],
-    explanation: 'Kiko mengatakan tetap meeting dan tidak menyentuh makanan. Namun, mikrofon laptopnya menangkap bungkus dan kunyahan pada pukul 10.09, lalu remah donat ditemukan tepat di bawah keyboardnya. Nara memang masuk pantry, tetapi bukti itu hanya menunjukkan ia mengambil air. Dua bukti yang saling menguatkan mengarah ke Kiko.'
-  },
-  {
-    id: 'slide-berubah', number: 'CASE 002', title: 'Siapa mengubah slide presentasi?', shortTitle: 'Slide berubah', emoji: '🖥️', category: 'TEKNOLOGI', difficulty: 'SEDANG', location: 'Ruang rapat B', type: 'MISTERI DIGITAL',
-    premise: 'Satu grafik penting di presentasi tim berubah menjadi gambar kucing lima menit sebelum rapat. Tidak ada yang mengaku menyentuh file.',
-    objective: 'Cocokkan jejak perangkat dengan waktu perubahan.',
-    suspects: [
-      { id: 'tania', name: 'Tania', emoji: '👩🏻‍💼', role: 'Analis data', alibi: '“Laptopku kubawa ke ruang rapat, tapi aku tidak mengedit slide.”' },
-      { id: 'reza', name: 'Reza', emoji: '🧑🏽‍🎤', role: 'Desainer', alibi: '“Aku sedang menulis di whiteboard.”' },
-      { id: 'omar', name: 'Omar', emoji: '👨🏾‍💻', role: 'IT support', alibi: '“Aku baru datang setelah file dibuka.”' }
-    ], answer: 'tania',
-    clues: [
-      { id: 'changelog', icon: '🧾', title: 'Riwayat file', teaser: 'File menyimpan waktu perubahan terakhir.', detail: 'Riwayat presentasi mencatat grafik diganti pukul 14.03 melalui perangkat LAPTOP-TANIA. File sebelumnya tidak memiliki gambar kucing.', evidence: 'KUAT' },
-      { id: 'wifi', icon: '📶', title: 'Log jaringan', teaser: 'Sebuah perangkat muncul di ruang rapat.', detail: 'LAPTOP-TANIA terhubung ke Wi-Fi ruang rapat pada pukul 14.02, satu menit sebelum perubahan file tercatat.', evidence: 'KUAT' },
-      { id: 'board', icon: '🖊️', title: 'Whiteboard', teaser: 'Ada catatan yang dihapus terburu-buru.', detail: 'Tulisan “pakai grafik baru” masih terlihat samar di whiteboard. Tulisan itu mirip tulisan Reza, tetapi tidak ada bukti bahwa Reza membuka atau mengubah file.', evidence: 'KONTEKS' }
-    ],
-    explanation: 'Riwayat file mengidentifikasi LAPTOP-TANIA sebagai perangkat yang mengganti grafik, dan log Wi-Fi menempatkan perangkat yang sama di ruang rapat sesaat sebelum edit. Catatan di whiteboard milik Reza bisa terlihat mencurigakan, tetapi tidak menghubungkannya dengan perubahan digital.'
-  },
-  {
-    id: 'tanaman-kantor', number: 'CASE 003', title: 'Kenapa tanaman kantor layu?', shortTitle: 'Tanaman layu', emoji: '🪴', category: 'KEHIDUPAN', difficulty: 'MUDAH', location: 'Sudut jendela kantor', type: 'MISTERI KEHARIAN',
-    premise: 'Tanaman yang biasanya segar mendadak layu, padahal semua orang bersikeras sudah merawatnya. Ada terlalu banyak kebaikan yang diberikan.',
-    objective: 'Cari tahu tindakan mana yang justru merusak tanaman.',
-    suspects: [
-      { id: 'galih', name: 'Galih', emoji: '🧑🏻‍🌾', role: 'Penyiram sukarela', alibi: '“Aku menyiramnya sedikit tadi pagi.”' },
-      { id: 'fira', name: 'Fira', emoji: '👩🏼‍🔬', role: 'Pencinta tanaman', alibi: '“Aku memindahkannya dekat jendela.”' },
-      { id: 'jo', name: 'Jo', emoji: '🧑🏽', role: 'Rekan satu tim', alibi: '“Aku hanya memotret tanamannya.”' }
-    ], answer: 'galih',
-    clues: [
-      { id: 'soil', icon: '💧', title: 'Kondisi tanah', teaser: 'Permukaannya masih basah.', detail: 'Tanah sangat basah sampai ke dasar pot, padahal tanaman ini perlu mengering sedikit di antara penyiraman. Akar mulai kekurangan udara.', evidence: 'KUAT' },
-      { id: 'can', icon: '🚿', title: 'Kaleng penyiram', teaser: 'Jumlah airnya tidak wajar.', detail: 'Kaleng penyiram kosong. Catatan pada pot hanya menyarankan sekitar 100 ml, sedangkan kaleng yang dipakai berkapasitas 1 liter dan baru saja terisi penuh.', evidence: 'KUAT' },
-      { id: 'photo', icon: '📷', title: 'Foto pagi hari', teaser: 'Tanaman terlihat baik sebelum disiram.', detail: 'Foto Jo pada pukul 08.00 memperlihatkan daun masih tegak. Catatan Galih menyebut ia menyiram setelah foto itu diambil.', evidence: 'KONTEKS' }
-    ],
-    explanation: 'Tanaman mengalami overwatering. Tanah yang jenuh dan kaleng satu liter yang kosong cocok dengan pengakuan Galih bahwa ia menyiram setelah foto diambil. Memindahkan tanaman dekat jendela atau memotretnya tidak menjelaskan tanah yang terlalu basah.'
-  },
-  {
-    id: 'playlist-bocor', number: 'CASE 004', title: 'Siapa membocorkan playlist rahasia?', shortTitle: 'Playlist bocor', emoji: '🎧', category: 'DIGITAL', difficulty: 'SEDANG', location: 'Grup chat tim', type: 'MISTERI DIGITAL',
-    premise: 'Playlist dengan judul memalukan “lagu galau saat pura-pura produktif” tiba-tiba muncul di grup kantor. Pemiliknya ingin identitas pembocor terungkap.',
-    objective: 'Telusuri jejak ekspor, bukan siapa yang paling malu.',
-    suspects: [
-      { id: 'acha', name: 'Acha', emoji: '👩🏻‍🎤', role: 'Kurator musik', alibi: '“Aku yang membuat playlist, bukan yang membagikan.”' },
-      { id: 'dewa', name: 'Dewa', emoji: '🧑🏽‍💻', role: 'Admin playlist', alibi: '“Aku tidak membuka fitur ekspor hari ini.”' },
-      { id: 'nisa', name: 'Nisa', emoji: '👩🏽', role: 'Teman satu tim', alibi: '“Aku cuma menerima tautannya.”' }
-    ], answer: 'dewa',
-    clues: [
-      { id: 'sharelog', icon: '🔗', title: 'Log berbagi', teaser: 'Tautan dibuat dari satu akun.', detail: 'Sistem mencatat tautan publik dibuat oleh akun dewa_guest pukul 16.42. Tautan yang sama kemudian muncul di grup chat.', evidence: 'KUAT' },
-      { id: 'browser', icon: '🧭', title: 'Riwayat browser', teaser: 'Halaman ekspor pernah dibuka.', detail: 'Pada perangkat Dewa terdapat riwayat halaman “Export playlist” tepat pukul 16.41. Ini bertentangan dengan pengakuannya bahwa ia tidak membuka fitur ekspor.', evidence: 'KUAT' },
-      { id: 'chat', icon: '💬', title: 'Pesan grup', teaser: 'Nisa adalah orang pertama yang mengirim pesan.', detail: 'Nisa mengirim tautan ke grup, tetapi waktu pesan 16.44—dua menit setelah tautan dibuat oleh akun dewa_guest. Mengirim ulang tidak sama dengan membuat tautan awal.', evidence: 'KONTEKS' }
-    ],
-    explanation: 'Akun dewa_guest membuat tautan pada 16.42 dan perangkat Dewa membuka halaman ekspor satu menit sebelumnya. Nisa memang mengirim tautan ke grup, tetapi ia bukan pembuat tautan berdasarkan log yang tersedia.'
-  },
-  {
-    id: 'printer-milo', number: 'CASE 005', title: 'Kasus printer yang mati sendiri', shortTitle: 'Printer mati', emoji: '🐈', category: 'ABSURD', difficulty: 'MUDAH', location: 'Sudut ruang kerja', type: 'MISTERI ABSURD',
-    premise: 'Printer berhenti bekerja tepat ketika dokumen penting akan dicetak. Semua manusia sedang rapat online. Satu saksi tidak bisa bicara.',
-    objective: 'Jangan menganggap pelakunya harus manusia.',
-    suspects: [
-      { id: 'nisa-p', name: 'Nisa', emoji: '👩🏻‍💻', role: 'Pemilik dokumen', alibi: '“Aku ada di video call dan layar menyala sepanjang waktu.”' },
-      { id: 'aldi', name: 'Aldi', emoji: '🧑🏼‍🔧', role: 'Teknisi kantor', alibi: '“Aku sedang presentasi di ruangan lain.”' },
-      { id: 'milo', name: 'Milo', emoji: '🐈', role: 'Kucing penghuni kantor', alibi: '“Meong.”' }
-    ], answer: 'milo',
-    clues: [
-      { id: 'paw', icon: '🐾', title: 'Jejak kaki', teaser: 'Ada jejak kecil dekat tombol daya.', detail: 'Jejak kaki berdebu terlihat di atas panel printer. Ukurannya jauh lebih kecil daripada telapak tangan orang dewasa.', evidence: 'KUAT' },
-      { id: 'button', icon: '🔴', title: 'Tombol daya', teaser: 'Tombolnya berada sangat rendah.', detail: 'Tombol daya printer terletak dekat lantai dan mudah ditekan oleh hewan yang melompat ke meja rendah. Ada bulu oranye menempel di tepinya.', evidence: 'KUAT' },
-      { id: 'meeting', icon: '📹', title: 'Rekaman rapat', teaser: 'Dua orang punya alibi yang bisa dicek.', detail: 'Nisa terlihat di video call sampai printer mati. Presentasi Aldi juga direkam tanpa jeda pada waktu yang sama.', evidence: 'KONTEKS' }
-    ],
-    explanation: 'Milo adalah pelaku paling masuk akal: jejak kaki kecil, bulu oranye, dan posisi tombol daya cocok dengan kucing kantor. Nisa dan Aldi memiliki rekaman aktivitas yang berlangsung saat printer mati. Kasus ini resmi ditutup—tanpa tuntutan hukum untuk kucing.'
-  },
-  {
-    id: 'wifi-berubah', number: 'CASE 006', title: 'Siapa mengganti password Wi-Fi?', shortTitle: 'Wi-Fi berubah', emoji: '📡', category: 'TEKNOLOGI', difficulty: 'SULIT', location: 'Meja router kantor', type: 'MISTERI JARINGAN',
-    premise: 'Semua perangkat mendadak terputus. Password Wi-Fi berubah, dan catatan password lama sudah ditempel dengan stiker “jangan diubah”.',
-    objective: 'Bandingkan alibi, log admin, dan perangkat yang benar-benar masuk ke halaman router.',
-    suspects: [
-      { id: 'sari', name: 'Sari', emoji: '👩🏻‍💼', role: 'Koordinator', alibi: '“Aku tidak ke meja router pagi ini.”' },
-      { id: 'nando', name: 'Nando', emoji: '🧑🏽‍💻', role: 'Developer', alibi: '“Aku sedang memperbarui dependency proyek.”' },
-      { id: 'putri', name: 'Putri', emoji: '👩🏼‍🔧', role: 'IT support', alibi: '“Aku hanya memeriksa kabel, tidak login ke router.”' }
-    ], answer: 'putri',
-    clues: [
-      { id: 'adminlog', icon: '🛜', title: 'Log administrator', teaser: 'Satu sesi admin mengubah pengaturan.', detail: 'Router mencatat perubahan password pukul 09.12 dari sesi admin yang dibuka melalui terminal dukungan IT.', evidence: 'KUAT' },
-      { id: 'ticket', icon: '🎫', title: 'Tiket dukungan', teaser: 'Ada pekerjaan yang dijadwalkan.', detail: 'Tiket IT mencatat Putri sedang menguji koneksi router pada pukul 09.00–09.30. Tugasnya adalah memeriksa kabel, bukan mengganti kredensial.', evidence: 'KUAT' },
-      { id: 'laptop', icon: '💻', title: 'Aktivitas perangkat', teaser: 'Developer juga aktif di waktu yang sama.', detail: 'Laptop Nando mengunduh dependency pada pukul 09.12, tetapi tidak ada koneksi ke halaman admin router dari perangkat tersebut.', evidence: 'KONTEKS' }
-    ], answerNote: 'putri',
-    explanation: 'Log menunjukkan perubahan dilakukan melalui sesi admin di terminal dukungan IT, sementara tiket menempatkan Putri pada pekerjaan router tepat di rentang waktu itu. Aktivitas unduhan Nando hanya menunjukkan ia bekerja, bukan bahwa ia mengakses admin router.'
-  }
-];
-
-const STORAGE_KEY = 'sebentar-detektif-v1';
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+const Engine = window.DetectiveEngine;
+const STORAGE_KEY = 'sebentar-detektif-progress-v2';
+const SETTINGS_KEY = 'sebentar-detektif-settings-v1';
 
-function localDateKey(date = new Date()) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
+let progress = loadProgress();
+let settings = loadSettings();
+let currentSeed = '';
+let currentDifficulty = 'medium';
+let currentMode = 'endless';
+let currentCase = null;
+let revealedClues = new Set();
+let selectedSuspectId = '';
+let wrongAttempts = 0;
+let hintsUsed = 0;
+let interrogationsUsed = 0;
+let caseState = 'playing'; // playing | solved | revealed
+let earnedThisRun = 0;
+let selectedQuestion = '';
+let toastTimer = 0;
+
+function utcDateKey(date = new Date()) {
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
 }
-function dailyCaseId(date = new Date()) {
-  const key = localDateKey(date);
-  const seed = Number(key.replaceAll('-', ''));
-  return CASES[(seed % CASES.length)].id;
-}
-function rankFor(xp) {
-  if (xp >= 500) return { name: 'Detektif Legendaris', badge: '✧', min: 500, next: 750 };
-  if (xp >= 250) return { name: 'Detektif Senior', badge: '✦', min: 250, next: 500 };
-  if (xp >= 100) return { name: 'Detektif Andal', badge: '◆', min: 100, next: 250 };
-  if (xp >= 30) return { name: 'Detektif Junior', badge: '◈', min: 30, next: 100 };
-  return { name: 'Detektif Magang', badge: '✦', min: 0, next: 30 };
-}
-function safeLoad() {
+function loadProgress() {
+  const blank = { xp: 0, solved: {}, recent: [], dailyHistory: [], runs: 0, bestScore: 0 };
   try {
-    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+    if (!raw || typeof raw !== 'object') return blank;
     return {
-      xp: Number.isFinite(parsed.xp) ? parsed.xp : 0,
-      solved: parsed.solved && typeof parsed.solved === 'object' ? parsed.solved : {},
-      runs: Number.isFinite(parsed.runs) ? parsed.runs : 0
+      xp: Math.max(0, Number(raw.xp) || 0),
+      solved: raw.solved && typeof raw.solved === 'object' ? raw.solved : {},
+      recent: Array.isArray(raw.recent) ? raw.recent : [],
+      dailyHistory: Array.isArray(raw.dailyHistory) ? raw.dailyHistory : [],
+      runs: Math.max(0, Number(raw.runs) || 0),
+      bestScore: Math.max(0, Number(raw.bestScore) || 0)
     };
-  } catch {
-    return { xp: 0, solved: {}, runs: 0 };
-  }
+  } catch { return blank; }
+}
+function loadSettings() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+    return {
+      theme: ['auto', 'fun', 'tense', 'cozy', 'noir'].includes(saved.theme) ? saved.theme : 'auto',
+      difficulty: ['auto', 'easy', 'medium', 'hard'].includes(saved.difficulty) ? saved.difficulty : 'auto'
+    };
+  } catch { return { theme: 'auto', difficulty: 'auto' }; }
 }
 function saveProgress() {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(progress)); } catch { /* Private mode may disable storage. */ }
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(progress)); } catch { toast('Penyimpanan browser penuh atau diblokir. Progres mungkin tidak tersimpan.'); }
+}
+function saveSettings() {
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch { /* Preferences are optional. */ }
+}
+function escapeText(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+}
+function getLocalTime() { return new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }); }
+function formatDateUTC(date = new Date()) {
+  return date.toLocaleDateString('id-ID', { timeZone: 'UTC', day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
 }
 function toast(message) {
   const el = $('#toast');
   el.textContent = message;
   el.classList.add('show');
-  clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => el.classList.remove('show'), 2600);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
 }
-function getCase(id) { return CASES.find(c => c.id === id) || CASES[0]; }
-function escapeText(text) {
-  return String(text).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+function caseSolved(id) { return Boolean(progress.solved[id]?.solved); }
+function getSolvedEntries() { return Object.values(progress.solved).filter(entry => entry && entry.solved); }
+function rankStreak() {
+  const dates = new Set(progress.dailyHistory);
+  let days = 0;
+  const cursor = new Date();
+  cursor.setUTCHours(0, 0, 0, 0);
+  while (dates.has(utcDateKey(cursor))) {
+    days += 1;
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+  }
+  return days;
 }
-
-const progress = safeLoad();
-let currentCaseId = dailyCaseId();
-let revealedClues = new Set();
-let selectedSuspectId = '';
-let wrongAttempts = 0;
-let caseState = 'playing'; // playing | solved | revealed
-let earnedThisRun = 0;
-let busy = false;
-
-function caseIsSolved(id) { return Boolean(progress.solved[id]?.solved); }
+function applyTheme() {
+  const actual = settings.theme === 'auto' ? (currentCase?.theme || 'cozy') : settings.theme;
+  document.body.dataset.theme = actual;
+  const theme = Engine.THEMES[actual] || Engine.THEMES.cozy;
+  $('#themeSelect').value = settings.theme;
+  $('#themeNote').textContent = `${theme.emoji} Suasana ${theme.label.toLowerCase()}`;
+  if ($('#caseMood') && currentCase) $('#caseMood').textContent = `${theme.emoji} ${theme.label.toUpperCase()}`;
+  $('#quoteCard').dataset.mood = actual;
+  const quotes = {
+    fun: ['“Kalau semua orang panik, periksa siapa yang masih santai.”', 'CATATAN DETEKTIF CERIA'],
+    tense: ['“Satu menit bisa mengubah seluruh cerita.”', 'BERKAS WAKTU KRITIS'],
+    cozy: ['“Detail kecil sering bicara lebih jujur daripada ingatan.”', 'CATATAN DETEKTIF'],
+    noir: ['“Semua orang punya cerita. Jam tidak pernah mengarang.”', 'ARSIP TENGAH MALAM']
+  };
+  $('#quoteText').textContent = quotes[actual][0];
+  $('#quoteCredit').textContent = quotes[actual][1];
+}
 function renderStats() {
-  const solvedCount = Object.values(progress.solved).filter(item => item?.solved).length;
-  const best = Math.max(0, ...Object.values(progress.solved).map(item => Number(item?.bestScore) || 0));
-  const rank = rankFor(progress.xp);
-  $('#totalPoints').textContent = progress.xp;
-  $('#solvedCount').innerHTML = `${solvedCount} <small>/ ${CASES.length}</small>`;
-  $('#bestScore').textContent = best ? best : '—';
+  const entries = getSolvedEntries();
+  const rank = Engine.rankFor(progress.xp);
+  const solvedCount = entries.length;
+  const perfectCount = entries.filter(item => Number(item.score) >= 90).length;
+  $('#totalPoints').textContent = String(progress.xp);
+  $('#solvedCount').textContent = String(solvedCount);
+  $('#bestScore').textContent = solvedCount ? String(perfectCount) : '—';
   $('#rankLabel').textContent = rank.name;
   $('#rankTitle').textContent = rank.name;
-  $('#rankBadge').textContent = rank.badge;
-  $('#rankProgressLabel').textContent = `${Math.max(0, progress.xp - rank.min)} / ${rank.next - rank.min} XP`;
-  $('#rankProgressBar').style.width = `${Math.min(100, ((progress.xp - rank.min) / (rank.next - rank.min)) * 100)}%`;
-  $('#rankFootnote').textContent = solvedCount === CASES.length ? 'Semua kasus berhasil kamu pecahkan. Ada detektif baru di kota ini.' : `${CASES.length - solvedCount} kasus lagi menunggu untuk kamu pecahkan.`;
-  $('#archiveCount').textContent = String(CASES.length).padStart(2, '0');
+  $('#rankBadge').textContent = rank.icon;
+  const progressWithinRank = Math.max(0, Math.min(100, (progress.xp - rank.min) / Math.max(1, rank.next - rank.min) * 100));
+  $('#rankProgressBar').style.width = `${progressWithinRank}%`;
+  $('#rankProgressLabel').textContent = `${progress.xp} / ${rank.next} XP`;
+  $('#rankFootnote').textContent = `${rankStreak()} hari streak Daily Mystery. ${perfectCount} kasus dengan skor 90+.`;
+}
+function addRecent(item) {
+  progress.recent = [
+    { seed: item.seed, difficulty: item.difficultyKey, id: item.id, title: item.title, emoji: item.emoji, theme: item.theme, mode: currentMode, openedAt: Date.now() },
+    ...progress.recent.filter(entry => entry.id !== item.id)
+  ].slice(0, 8);
+  saveProgress();
 }
 function renderArchive() {
-  const target = $('#caseArchive');
-  target.innerHTML = CASES.map(item => {
-    const solved = caseIsSolved(item.id);
-    const active = item.id === currentCaseId;
-    return `<button class="archive-item ${active ? 'active' : ''}" data-case-id="${item.id}" ${active ? 'aria-current="true"' : ''}>
-      <span class="archive-emoji">${item.emoji}</span><span class="archive-meta"><strong>${escapeText(item.shortTitle)}</strong><small>${escapeText(item.category)} · ${solved ? 'Terpecahkan' : item.difficulty.toLowerCase()}</small></span><span class="archive-state ${solved ? 'done' : ''}" aria-label="${solved ? 'Selesai' : 'Belum selesai'}">${solved ? '✓' : '↗'}</span>
-    </button>`;
+  $('#archiveCount').textContent = String(progress.recent.length).padStart(2, '0');
+  const container = $('#caseArchive');
+  if (!progress.recent.length) {
+    container.innerHTML = '<div class="archive-empty">Belum ada berkas di sini. Tekan <b>Kasus baru</b> untuk merakit misteri pertama.</div>';
+    return;
+  }
+  container.innerHTML = progress.recent.map(entry => {
+    const solved = caseSolved(entry.id);
+    return `<button class="archive-item ${entry.id === currentCase?.id ? 'active' : ''}" type="button" data-seed="${escapeText(entry.seed)}" data-difficulty="${escapeText(entry.difficulty)}" data-mode="${escapeText(entry.mode || 'endless')}" title="Buka kembali ${escapeText(entry.title)}">
+      <span class="archive-emoji">${escapeText(entry.emoji)}</span><span class="archive-meta"><strong>${escapeText(entry.title)}</strong><small>${escapeText(entry.difficulty.toUpperCase())} · ${escapeText(entry.seed.slice(0, 16))}</small></span><span class="archive-state ${solved ? 'done' : ''}">${solved ? '✓' : '↗'}</span></button>`;
   }).join('');
 }
+function updateUrl() {
+  try {
+    const url = new URL(location.href);
+    url.searchParams.set('seed', currentSeed);
+    url.searchParams.set('difficulty', currentDifficulty);
+    url.searchParams.set('theme', settings.theme);
+    history.replaceState({}, '', url);
+  } catch { /* Local file preview may not support history APIs. */ }
+}
+function applyQuerySettings() {
+  const params = new URLSearchParams(location.search);
+  const theme = params.get('theme');
+  const difficulty = params.get('difficulty');
+  if (['auto', 'fun', 'tense', 'cozy', 'noir'].includes(theme)) settings.theme = theme;
+  if (['auto', 'easy', 'medium', 'hard'].includes(difficulty)) settings.difficulty = difficulty;
+  $('#difficultySelect').value = settings.difficulty;
+  $('#themeSelect').value = settings.theme;
+}
+function buildCase(seed, difficulty = 'auto', mode = 'endless') {
+  const opts = {};
+  if (difficulty !== 'auto') opts.difficulty = difficulty;
+  if (mode === 'daily') opts.difficulty = 'medium';
+  return Engine.generateCase(seed, opts);
+}
+function startCase(seed, difficulty = settings.difficulty, mode = 'endless', updateHistory = true) {
+  try {
+    currentSeed = String(seed || Engine.makeRandomSeed());
+    currentMode = mode;
+    currentCase = buildCase(currentSeed, difficulty, mode);
+    currentDifficulty = currentCase.difficultyKey;
+    selectedSuspectId = '';
+    revealedClues = new Set();
+    wrongAttempts = 0;
+    hintsUsed = 0;
+    interrogationsUsed = 0;
+    selectedQuestion = '';
+    caseState = 'playing';
+    earnedThisRun = 0;
+    if (updateHistory) addRecent(currentCase);
+    renderCase();
+    renderArchive();
+    renderStats();
+    applyTheme();
+    updateUrl();
+    return true;
+  } catch (error) {
+    console.error('Gagal merakit kasus:', error);
+    toast('Mesin kasus mengalami masalah. Coba rakit seed baru.');
+    return false;
+  }
+}
 function renderCase() {
-  const item = getCase(currentCaseId);
-  $('#revealAnswerBtn')?.remove();
-  revealedClues = new Set();
-  selectedSuspectId = '';
-  wrongAttempts = 0;
-  caseState = 'playing';
-  earnedThisRun = 0;
-  busy = false;
-  $('#sectionTitle').textContent = item.id === dailyCaseId() ? 'Kasus hari ini' : 'Berkas kasus';
-  $('#todayLabel').textContent = item.id === dailyCaseId() ? `HARI INI · ${localDateKey().split('-').reverse().join('/')}` : 'ARSIP KASUS';
+  const item = currentCase;
+  if (!item) return;
+  const validation = Engine.validateCase(item);
+  if (!validation.valid) {
+    $('#caseTitle').textContent = 'Berkas ditahan untuk pemeriksaan';
+    $('#casePremise').textContent = 'Generator menemukan kasus yang belum memenuhi aturan logika. Coba buat kasus baru.';
+    console.error('Case validation errors:', validation.errors);
+    return;
+  }
+  $('#sectionTitle').textContent = currentMode === 'daily' ? 'Kasus harian' : currentMode === 'shared' ? 'Berkas dari teman' : 'Berkas yang sedang dibuka';
+  $('#difficultySelect').disabled = currentMode === 'daily';
+  $('#difficultySelect').value = currentMode === 'daily' ? 'medium' : settings.difficulty;
+  $('#todayLabel').textContent = currentMode === 'daily' ? `DAILY · ${formatDateUTC()}` : currentMode === 'shared' ? 'SHARED CASE' : 'ENDLESS MODE';
   $('#caseNumber').textContent = item.number;
   $('#caseDifficulty').textContent = item.difficulty;
   $('#caseLocation').textContent = item.location;
-  $('#caseType').textContent = item.type;
+  $('#caseMood').textContent = `${Engine.THEMES[item.theme].emoji} ${Engine.THEMES[item.theme].label.toUpperCase()}`;
+  $('#caseType').textContent = item.category;
   $('#caseTitle').textContent = item.title;
   $('#casePremise').textContent = item.premise;
   $('#caseObjective').textContent = item.objective;
-  $('#caseIllustration').querySelector('.illustration-main').textContent = item.emoji;
-  $('#caseSolvedTag').textContent = caseIsSolved(item.id) ? 'PERNAH DIPECAHKAN' : 'BELUM DIPECAHKAN';
-  $('#clueCount').textContent = `0/${item.clues.length}`;
-  $('#clueGrid').innerHTML = item.clues.map((clue, i) => `<button class="clue-card" data-clue-id="${clue.id}" aria-expanded="false">
-      <span class="clue-top"><span class="clue-icon">${clue.icon}</span><span class="clue-status">KETUK UNTUK PERIKSA</span></span>
-      <strong>${escapeText(clue.title)}</strong><span class="clue-copy">${escapeText(clue.teaser)}</span>
-    </button>`).join('');
-  $('#suspectGrid').innerHTML = item.suspects.map(suspect => `<button class="suspect-card" data-suspect-id="${suspect.id}" aria-pressed="false">
-      <span class="suspect-selected-mark">✓</span><span class="suspect-avatar">${suspect.emoji}</span><strong>${escapeText(suspect.name)}</strong><p>${escapeText(suspect.role)}<br>${escapeText(suspect.alibi)}</p>
-    </button>`).join('');
-  $('#selectedSuspectNote').textContent = 'Pilih tersangka setelah memeriksa petunjuk.';
+  $('#caseIllustration').textContent = item.emoji;
+  $('#caseSeedLabel').textContent = `SEED ${item.seed.length > 21 ? item.seed.slice(0, 21) + '…' : item.seed}`;
+  $('#estimatedTime').textContent = item.difficultyKey === 'hard' ? '3–5 menit' : item.difficultyKey === 'medium' ? '2–4 menit' : '1–3 menit';
+  $('#suspectCountLabel').textContent = `${item.suspects.length} tersangka`;
+  $('#clueCount').textContent = `0/${item.clues.length} petunjuk`;
+  $('#caseSolvedTag').textContent = caseSolved(item.id) ? 'PERNAH DIPECAHKAN' : 'BELUM DIPECAHKAN';
+  $('#clueGrid').innerHTML = item.clues.map((clue, index) => `<button class="clue-card" type="button" data-clue-id="${escapeText(clue.id)}" aria-expanded="false"><span class="clue-top"><span class="clue-icon">${escapeText(clue.icon)}</span><span class="clue-status">${clue.evidence === 'KUAT' ? 'BUKTI UTAMA' : 'BUKTI KONTEKS'}</span></span><strong>${escapeText(clue.title)}</strong><span class="clue-copy">${escapeText(clue.teaser)}</span></button>`).join('');
+  $('#suspectGrid').innerHTML = item.suspects.map(suspect => `<button class="suspect-card" type="button" data-suspect-id="${escapeText(suspect.id)}" aria-pressed="false"><span class="suspect-selected-mark">✓</span><span class="suspect-avatar">${escapeText(suspect.emoji)}</span><strong>${escapeText(suspect.name)}</strong><p>${escapeText(suspect.role)}<br><span>${escapeText(suspect.alibi)}</span></p></button>`).join('');
+  $('#interrogationSuspect').innerHTML = item.suspects.map(suspect => `<option value="${escapeText(suspect.id)}">${escapeText(suspect.name)} — ${escapeText(suspect.role)}</option>`).join('');
+  $('#questionGrid').innerHTML = item.questions.map(question => `<button class="question-button" type="button" data-question-id="${escapeText(question.id)}">${escapeText(question.label)}</button>`).join('');
+  $('#dialogueOutput').innerHTML = '<span class="dialogue-label">CATATAN INTEROGASI</span><p>Pilih pertanyaan untuk mulai berbicara dengan tersangka.</p>';
+  $('#selectedSuspectNote').textContent = 'Baca bukti, pilih tersangka, lalu ajukan tuduhan.';
   $('#accuseBtn').disabled = true;
   $('#accuseBtn').innerHTML = 'Ajukan tuduhan <span>↗</span>';
+  $('#hintPanel').hidden = true;
+  $('#hintPanel').innerHTML = '';
+  $('#hintBtn').disabled = false;
+  $('#hintBtn').innerHTML = 'Minta petunjuk <span>−15 poin</span>';
   $('#feedbackPanel').hidden = true;
   $('#feedbackPanel').className = 'feedback-panel';
+  $('#revealSolutionBtn').hidden = true;
   $('#resultPanel').hidden = true;
   $('#caseCard').classList.remove('is-closed');
-  $('#caseArchive').querySelectorAll('[data-case-id]').forEach(btn => btn.classList.toggle('active', btn.dataset.caseId === currentCaseId));
-  $('#browseBtn').textContent = 'Lihat semua kasus ↓';
-  $('#caseCard').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   renderArchive();
-  renderStats();
+  applyTheme();
 }
 function revealClue(clueId) {
-  if (busy || caseState !== 'playing') return;
-  const item = getCase(currentCaseId);
-  const clue = item.clues.find(c => c.id === clueId);
-  if (!clue) return;
-  const card = $(`[data-clue-id="${clueId}"]`);
-  const already = revealedClues.has(clueId);
-  if (already) {
+  if (caseState !== 'playing') return;
+  const clue = currentCase.clues.find(item => item.id === clueId);
+  const card = $(`[data-clue-id="${CSS.escape(clueId)}"]`);
+  if (!clue || !card) return;
+  if (revealedClues.has(clueId)) {
     revealedClues.delete(clueId);
     card.classList.remove('is-open');
     card.setAttribute('aria-expanded', 'false');
-    card.querySelector('.clue-status').textContent = 'KETUK UNTUK PERIKSA';
     card.querySelector('.clue-copy').textContent = clue.teaser;
+    card.querySelector('.clue-status').textContent = clue.evidence === 'KUAT' ? 'BUKTI UTAMA' : 'BUKTI KONTEKS';
   } else {
     revealedClues.add(clueId);
     card.classList.add('is-open');
     card.setAttribute('aria-expanded', 'true');
-    card.querySelector('.clue-status').textContent = clue.evidence;
     card.querySelector('.clue-copy').textContent = clue.detail;
+    card.querySelector('.clue-status').textContent = clue.evidence;
   }
-  $('#clueCount').textContent = `${revealedClues.size}/${item.clues.length}`;
+  $('#clueCount').textContent = `${revealedClues.size}/${currentCase.clues.length} petunjuk dibuka`;
 }
 function selectSuspect(suspectId) {
-  if (caseState !== 'playing' || busy) return;
+  if (caseState !== 'playing') return;
+  const suspect = currentCase.suspects.find(item => item.id === suspectId);
+  if (!suspect) return;
   selectedSuspectId = suspectId;
-  const item = getCase(currentCaseId);
-  const suspect = item.suspects.find(s => s.id === suspectId);
   $$('.suspect-card').forEach(card => {
     const selected = card.dataset.suspectId === suspectId;
     card.classList.toggle('selected', selected);
     card.setAttribute('aria-pressed', String(selected));
   });
-  $('#selectedSuspectNote').textContent = `${suspect.name} dipilih. Sudah yakin dengan analisismu?`;
+  $('#selectedSuspectNote').textContent = `${suspect.name} dipilih. Apakah bukti waktu dan jejak mendukung dugaanmu?`;
   $('#accuseBtn').disabled = false;
   $('#feedbackPanel').hidden = true;
 }
 function showFeedback(message, type = '') {
-  const el = $('#feedbackPanel');
-  el.className = `feedback-panel ${type}`.trim();
-  el.textContent = message;
-  el.hidden = false;
+  const panel = $('#feedbackPanel');
+  panel.className = `feedback-panel ${type}`.trim();
+  panel.textContent = message;
+  panel.hidden = false;
 }
-function scoreForRun() {
-  return Math.max(20, 100 - revealedClues.size * 12 - wrongAttempts * 18);
+function useHint() {
+  if (caseState !== 'playing') return;
+  if (hintsUsed >= currentCase.hints.length) { toast('Semua petunjuk bantuan sudah dipakai.'); return; }
+  const hint = currentCase.hints[hintsUsed];
+  hintsUsed += 1;
+  $('#hintPanel').innerHTML = `<strong>Petunjuk ${hintsUsed}/${currentCase.hints.length} · ${escapeText(hint.title)}</strong><span>${escapeText(hint.text)}</span>`;
+  $('#hintPanel').hidden = false;
+  $('#hintBtn').innerHTML = hintsUsed >= currentCase.hints.length ? 'Bantuan habis' : `Minta petunjuk <span>−15 poin</span>`;
+  if (hintsUsed >= currentCase.hints.length) $('#hintBtn').disabled = true;
 }
-function accuse() {
-  if (caseState !== 'playing' || !selectedSuspectId || busy) return;
-  const item = getCase(currentCaseId);
-  if (selectedSuspectId !== item.answer) {
-    wrongAttempts += 1;
-    const selected = item.suspects.find(s => s.id === selectedSuspectId);
-    const messages = [
-      `${selected.name} memang tampak mencurigakan, tetapi satu hal penting belum cocok. Baca ulang petunjuk dan bandingkan alibinya.`,
-      `Belum tepat. Jangan berhenti di petunjuk yang paling mencolok—cari dua bukti yang saling menguatkan.`,
-      `Masih meleset. Coba fokus ke urutan waktu dan bukti yang bisa diverifikasi, bukan sekadar dugaan.`
-    ];
-    showFeedback(messages[Math.min(wrongAttempts - 1, messages.length - 1)], 'error');
-    $('#selectedSuspectNote').textContent = `Percobaan ${wrongAttempts}. Kamu masih bisa menyelidiki dan memilih lagi.`;
-    if (wrongAttempts >= 3) {
-      $('#accuseBtn').innerHTML = 'Coba tuduh lagi <span>↗</span>';
-      const reveal = document.createElement('button');
-      reveal.className = 'button button-quiet';
-      reveal.id = 'revealAnswerBtn';
-      reveal.textContent = 'Ungkap solusi';
-      if (!$('#revealAnswerBtn')) $('#accuseRow').appendChild(reveal);
-    }
-    return;
-  }
-  const alreadySolved = caseIsSolved(item.id);
-  const score = alreadySolved ? 0 : scoreForRun();
+function askQuestion(questionId) {
+  if (caseState !== 'playing') return;
+  const suspect = currentCase.suspects.find(item => item.id === $('#interrogationSuspect').value);
+  const question = currentCase.questions.find(item => item.id === questionId);
+  if (!suspect || !question) return;
+  interrogationsUsed += 1;
+  selectedQuestion = questionId;
+  $$('.question-button').forEach(button => button.classList.toggle('active', button.dataset.questionId === questionId));
+  const answer = suspect.responses[questionId] || '“Aku tidak punya jawaban lain untuk saat ini.”';
+  $('#dialogueOutput').innerHTML = `<span class="dialogue-label">${escapeText(suspect.name.toUpperCase())} · ${escapeText(question.label.toUpperCase())}</span><p>${escapeText(answer)}</p><small>${escapeText(suspect.behavior)} saat menjawab. Ini hanya konteks, bukan bukti kesalahan.</small>`;
+}
+function finishCase(revealed = false) {
+  const item = currentCase;
+  const alreadySolved = caseSolved(item.id);
+  const score = revealed || alreadySolved ? 0 : Engine.scoreCase({ difficulty: item.difficultyKey, revealedHints: hintsUsed, wrongAttempts, daily: currentMode === 'daily' });
   earnedThisRun = score;
-  caseState = 'solved';
-  busy = true;
-  if (!alreadySolved) {
-    const old = progress.solved[item.id];
-    progress.solved[item.id] = { solved: true, bestScore: Math.max(score, Number(old?.bestScore) || 0), date: localDateKey(), attempts: wrongAttempts + 1 };
+  caseState = revealed ? 'revealed' : 'solved';
+  if (!revealed && !alreadySolved) {
+    progress.solved[item.id] = { solved: true, score, date: utcDateKey(), seed: item.seed, title: item.title, difficulty: item.difficultyKey };
     progress.xp += score;
     progress.runs += 1;
+    progress.bestScore = Math.max(progress.bestScore, score);
+    if (currentMode === 'daily') {
+      progress.dailyHistory = [...new Set([...progress.dailyHistory, utcDateKey()])].slice(-90);
+    }
     saveProgress();
   }
   $('#caseCard').classList.add('is-closed');
-  $('#resultIcon').textContent = '✓';
-  $('#resultEyebrow').textContent = 'CASE CLOSED';
-  $('#resultTitle').textContent = alreadySolved ? 'Kasus terpecahkan lagi!' : 'Tajam sekali, Detektif!';
-  $('#resultDescription').textContent = alreadySolved ? 'Kasus ini sudah pernah kamu selesaikan, jadi tidak ada XP tambahan untuk percobaan ulang.' : `Kamu berhasil mengidentifikasi ${item.suspects.find(s => s.id === item.answer).name} dengan menghubungkan bukti.`;
-  $('#resultScore').textContent = alreadySolved ? '+0' : `+${score}`;
+  $('#resultIcon').textContent = revealed ? '⌕' : '✓';
+  $('#resultEyebrow').textContent = revealed ? 'FILE DECLASSIFIED' : 'CASE CLOSED';
+  $('#resultTitle').textContent = revealed ? `Solusi ditemukan: ${item.culpritName}` : alreadySolved ? 'Terpecahkan sekali lagi!' : 'Tajam sekali, Detektif!';
+  $('#resultDescription').textContent = revealed
+    ? 'Kamu membuka solusi tanpa menyelesaikan tuduhan. Baca rekonstruksi untuk melihat hubungan antar-bukti.'
+    : alreadySolved
+      ? 'Kasus ini sudah pernah kamu pecahkan. Kamu bisa melatih analisismu lagi, tetapi XP tidak diberikan dua kali untuk seed yang sama.'
+      : `Kamu memilih ${item.suspects.find(suspect => suspect.id === item.answer).name}. Kamu mendapatkan ${score} XP setelah memperhitungkan tingkat kesulitan, bantuan, dan tuduhan yang keliru.`;
+  $('#resultScore').textContent = `+${score}`;
   $('#solutionText').textContent = item.explanation;
   $('#resultPanel').hidden = false;
   $('#feedbackPanel').hidden = true;
-  $('#caseSolvedTag').textContent = 'KASUS TERPECAHKAN';
-  $('#resultPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  $('#revealSolutionBtn').hidden = true;
+  $('#caseSolvedTag').textContent = revealed ? 'SOLUSI DIBUKA' : 'KASUS TERPECAHKAN';
+  $('#resultPanel').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'nearest' });
   renderStats(); renderArchive();
 }
-function revealSolution() {
-  if (caseState !== 'playing') return;
-  const item = getCase(currentCaseId);
-  caseState = 'revealed';
-  busy = true;
-  $('#caseCard').classList.add('is-closed');
-  $('#resultIcon').textContent = '⌕';
-  $('#resultEyebrow').textContent = 'FILE DIBUKA';
-  $('#resultTitle').textContent = `Jawabannya: ${item.suspects.find(s => s.id === item.answer).name}`;
-  $('#resultDescription').textContent = 'Kamu membuka solusi tanpa menyelesaikan tuduhan. Baca rekonstruksi kejadian untuk melihat hubungan antar-bukti.';
-  $('#resultScore').textContent = '+0';
-  $('#solutionText').textContent = item.explanation;
-  $('#resultPanel').hidden = false;
-  $('#resultPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+function accuse() {
+  if (caseState !== 'playing' || !selectedSuspectId) return;
+  const item = currentCase;
+  const suspect = item.suspects.find(candidate => candidate.id === selectedSuspectId);
+  if (!suspect) return;
+  if (selectedSuspectId !== item.answer) {
+    wrongAttempts += 1;
+    const messages = [
+      `${suspect.name} memang punya bagian cerita yang terasa janggal, tetapi bukti belum mengarah padanya. Cocokkan waktu dengan jejak yang ditemukan.`,
+      `Belum tepat. Bedakan orang yang sempat mengakses lokasi dengan orang yang benar-benar ada saat kejadian.`,
+      `Masih belum cocok. Cari dua bukti independen yang menunjuk ke orang yang sama; jangan hanya mengandalkan motif atau sikap gugup.`
+    ];
+    showFeedback(messages[Math.min(wrongAttempts - 1, messages.length - 1)], 'error');
+    $('#selectedSuspectNote').textContent = `Tuduhan ke-${wrongAttempts}. Kamu masih bisa memeriksa bukti dan mengganti pilihan.`;
+    if (wrongAttempts >= 3) $('#revealSolutionBtn').hidden = false;
+    return;
+  }
+  finishCase(false);
 }
-function startCase(id) {
-  currentCaseId = CASES.some(c => c.id === id) ? id : dailyCaseId();
-  renderCase();
-}
-function shareResult() {
-  const item = getCase(currentCaseId);
-  const result = caseState === 'solved' ? (caseIsSolved(item.id) ? 'Kasus berhasil dipecahkan' : 'Kasus selesai') : 'Aku sedang menyelidiki';
-  const text = `🕵️ Sebentar, Detektif!\n${result}: ${item.title}\nXP: ${earnedThisRun}\nCoba pecahkan misterinya juga di ${location.href}`;
+function revealSolution() { if (caseState === 'playing') finishCase(true); }
+function shareCase() {
+  const url = new URL(location.href);
+  url.searchParams.set('seed', currentCase.seed);
+  url.searchParams.set('difficulty', currentCase.difficultyKey);
+  url.searchParams.set('theme', settings.theme);
+  const text = `🕵️ Sebentar, Detektif!\nCoba pecahkan: ${currentCase.title}\nMode: ${currentMode === 'daily' ? 'Daily Mystery' : 'Endless Mystery'}\n${url.toString()}`;
   if (navigator.share) {
-    navigator.share({ title: 'Sebentar, Detektif!', text }).catch(() => {});
+    navigator.share({ title: 'Sebentar, Detektif!', text, url: url.toString() }).catch(() => {});
   } else if (navigator.clipboard?.writeText) {
-    navigator.clipboard.writeText(text).then(() => toast('Hasil berhasil disalin untuk dibagikan.')).catch(() => fallbackCopy(text));
+    navigator.clipboard.writeText(text).then(() => toast('Tautan kasus disalin. Kirim ke temanmu!')).catch(() => fallbackCopy(text));
   } else fallbackCopy(text);
 }
 function fallbackCopy(text) {
-  const input = document.createElement('textarea'); input.value = text; input.setAttribute('readonly', '');
-  input.style.position = 'fixed'; input.style.opacity = '0'; document.body.appendChild(input); input.select();
-  try { document.execCommand('copy'); toast('Hasil disalin untuk dibagikan.'); } catch { toast('Salin teks hasil dari perangkatmu.'); }
-  input.remove();
+  const area = document.createElement('textarea');
+  area.value = text; area.setAttribute('readonly', '');
+  area.style.position = 'fixed'; area.style.opacity = '0';
+  document.body.appendChild(area); area.select();
+  try { document.execCommand('copy'); toast('Tautan kasus siap dibagikan.'); } catch { toast('Salin URL dari kolom alamat browser.'); }
+  area.remove();
+}
+function newEndlessCase() {
+  const seed = Engine.makeRandomSeed();
+  startCase(seed, settings.difficulty, 'endless');
+  toast('Kasus baru berhasil dirakit. Periksa tiap detail!');
+}
+function openDailyCase() {
+  const seed = Engine.getDailySeed();
+  startCase(seed, 'medium', 'daily');
+  toast('Daily Mystery: seed hari ini sama untuk semua pemain.');
+}
+function nextCase() {
+  const seed = Engine.makeRandomSeed();
+  startCase(seed, settings.difficulty, 'endless');
+  window.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+}
+function onArchiveClick(event) {
+  const button = event.target.closest('[data-seed]');
+  if (!button) return;
+  startCase(button.dataset.seed, button.dataset.difficulty, button.dataset.mode || 'shared', false);
+  toast('Berkas lama dibuka kembali. XP tidak digandakan untuk kasus yang sudah selesai.');
+}
+function init() {
+  applyQuerySettings();
+  const params = new URLSearchParams(location.search);
+  const sharedSeed = params.get('seed');
+  const difficulty = ['auto', 'easy', 'medium', 'hard'].includes(params.get('difficulty')) ? params.get('difficulty') : settings.difficulty;
+  const storedTheme = settings.theme;
+  if (sharedSeed) {
+    startCase(sharedSeed, difficulty, sharedSeed.startsWith('daily-') ? 'daily' : 'shared');
+  } else {
+    startCase(Engine.getDailySeed(), 'medium', 'daily');
+  }
+  settings.theme = storedTheme;
+  $('#themeSelect').value = settings.theme;
+  $('#difficultySelect').value = settings.difficulty;
+  applyTheme(); renderStats(); renderArchive();
 }
 
 $('#clueGrid').addEventListener('click', event => {
@@ -361,37 +415,34 @@ $('#suspectGrid').addEventListener('click', event => {
   const card = event.target.closest('[data-suspect-id]');
   if (card) selectSuspect(card.dataset.suspectId);
 });
-$('#caseArchive').addEventListener('click', event => {
-  const button = event.target.closest('[data-case-id]');
-  if (button) startCase(button.dataset.caseId);
+$('#caseArchive').addEventListener('click', onArchiveClick);
+$('#questionGrid').addEventListener('click', event => {
+  const button = event.target.closest('[data-question-id]');
+  if (button) askQuestion(button.dataset.questionId);
 });
 $('#accuseBtn').addEventListener('click', accuse);
-$('#feedbackPanel').addEventListener('click', event => { if (event.target.id === 'revealAnswerBtn') revealSolution(); });
-$('#accuseRow').addEventListener('click', event => { if (event.target.id === 'revealAnswerBtn') revealSolution(); });
-$('#dailyBtn').addEventListener('click', () => startCase(dailyCaseId()));
-$('#browseBtn').addEventListener('click', () => { $('#archiveSection').scrollIntoView({ behavior: 'smooth', block: 'start' }); toast('Pilih salah satu berkas di Arsip Kasus.'); });
-$('#footerNextBtn').addEventListener('click', () => { $('#archiveSection').scrollIntoView({ behavior: 'smooth', block: 'start' }); toast('Pilih misteri berikutnya dari arsip.'); });
-$('#nextCaseBtn').addEventListener('click', () => {
-  const index = CASES.findIndex(c => c.id === currentCaseId);
-  const next = CASES.slice(index + 1).find(c => !caseIsSolved(c.id)) || CASES.find(c => !caseIsSolved(c.id)) || CASES[(index + 1) % CASES.length];
-  startCase(next.id);
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+$('#hintBtn').addEventListener('click', useHint);
+$('#revealSolutionBtn').addEventListener('click', revealSolution);
+$('#dailyBtn').addEventListener('click', openDailyCase);
+$('#dailySideBtn').addEventListener('click', openDailyCase);
+$('#endlessBtn').addEventListener('click', newEndlessCase);
+$('#shareCaseBtn').addEventListener('click', shareCase);
+$('#shareResultBtn').addEventListener('click', shareCase);
+$('#nextCaseBtn').addEventListener('click', nextCase);
+$('#replayBtn').addEventListener('click', () => startCase(currentSeed, currentDifficulty, currentMode, false));
+$('#footerNextBtn').addEventListener('click', newEndlessCase);
+$('#themeSelect').addEventListener('change', event => {
+  settings.theme = event.target.value;
+  saveSettings(); applyTheme(); updateUrl();
+  toast(settings.theme === 'auto' ? 'Suasana mengikuti nuansa kasus.' : `Nuansa ${Engine.THEMES[settings.theme].label} diaktifkan.`);
 });
-$('#replayBtn').addEventListener('click', () => startCase(currentCaseId));
-$('#shareResultBtn').addEventListener('click', shareResult);
+$('#difficultySelect').addEventListener('change', event => {
+  settings.difficulty = event.target.value;
+  saveSettings();
+  toast('Kompleksitas baru dipakai pada kasus berikutnya.');
+});
 $('#howToBtn').addEventListener('click', () => $('#howToDialog').showModal());
 $('#closeGuideBtn').addEventListener('click', () => $('#howToDialog').close());
 $('#howToDialog').addEventListener('click', event => { if (event.target === $('#howToDialog')) $('#howToDialog').close(); });
 
-function init() {
-  $('#todayLabel').textContent = `HARI INI · ${localDateKey().split('-').reverse().join('/')}`;
-  renderCase();
-  renderArchive();
-  renderStats();
-}
 init();
-
-// Expose pure helpers only for lightweight unit tests; the game still runs without a test harness.
-if (typeof globalThis !== 'undefined') {
-  globalThis.SebentarDetektifTest = { CASES, dailyCaseId, rankFor, scoreForClues: (clueCount, wrongCount) => Math.max(20, 100 - clueCount * 12 - wrongCount * 18) };
-}

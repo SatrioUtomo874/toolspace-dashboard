@@ -2,92 +2,130 @@
 <html lang="id">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f5f1e9">
-  <title>Sebentar, Detektif! — Pecahkan misteri kecil</title>
-  <meta name="description" content="Misteri kecil, petunjuk tersembunyi, dan tersangka yang menunggu untuk diinterogasi. Pecahkan satu kasus dalam 1 menit.">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f8f3e9">
+  <meta name="color-scheme" content="light dark">
+  <title>Sebentar, Detektif! — Misteri tanpa akhir</title>
+  <meta name="description" content="Game misteri prosedural: kasus baru, petunjuk yang saling terhubung, interogasi, dan suasana yang bisa kamu ubah.">
   <meta name="toolspace:title" content="Sebentar, Detektif!">
   <meta name="toolspace:category" content="Fun & Games">
   <meta name="toolspace:status" content="ready">
   <meta name="toolspace:status-label" content="Bisa dimainkan">
-  <meta name="toolspace:tag" content="Mystery · Puzzle · Mini Game">
+  <meta name="toolspace:tag" content="Mystery · Puzzle · Endless Game">
   <meta name="toolspace:symbol" content="🕵️">
   <meta name="toolspace:art" content="detective">
   <meta name="toolspace:thumbnail" content="assets/thumbnail.svg">
   <meta name="toolspace:url" content="/Sebentar_Detektif/">
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <script src="engine.js" defer></script>
   <script src="app.js" defer></script>
 </head>
-<body>
+<body data-theme="cozy">
+  <div class="ambient ambient-one" aria-hidden="true"></div>
+  <div class="ambient ambient-two" aria-hidden="true"></div>
   <div class="app-shell">
     <header class="topbar">
-      <a class="brand" href="./" aria-label="Sebentar Detektif beranda">
-        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 44 44"><path d="M22 5c-8 0-14 6-14 14v5c0 8 6 14 14 14s14-6 14-14v-5C36 11 30 5 22 5Z"/><path d="M13 17c2-5 5-7 9-7s7 2 9 7M13 24c3 4 5 5 9 5s6-1 9-5M19 17h.1M25 17h.1"/></svg></span>
+      <a class="brand" href="./" aria-label="Sebentar, Detektif! beranda">
+        <span class="brand-mark" aria-hidden="true">⌕</span>
         <span class="brand-copy"><strong>sebentar, detektif<span>!</span></strong><small>misteri kecil, otak tetap aktif</small></span>
       </a>
       <div class="topbar-right">
-        <div class="score-pill" title="Poin detektif kamu"><span class="score-star">✦</span><span id="totalPoints">0</span><small>XP</small></div>
-        <button class="icon-button help-button" id="howToBtn" aria-label="Cara bermain" title="Cara bermain">?</button>
+        <label class="theme-control"><span>SUASANA</span>
+          <select id="themeSelect" aria-label="Pilih suasana warna">
+            <option value="auto">Otomatis</option>
+            <option value="fun">🎈 Fun</option>
+            <option value="tense">🕯️ Tegang</option>
+            <option value="cozy">☕ Cozy</option>
+            <option value="noir">🌃 Noir</option>
+          </select>
+        </label>
+        <div class="score-pill" title="Poin detektif tersimpan di browser"><span class="score-star">✦</span><span id="totalPoints">0</span><small>XP</small></div>
+        <button class="icon-button" id="howToBtn" aria-label="Cara bermain" title="Cara bermain">?</button>
       </div>
     </header>
 
     <main>
-      <section class="hero">
+      <section class="hero" id="hero">
         <div class="hero-copy">
-          <div class="eyebrow"><span class="eyebrow-dot"></span> DETECTIVE DESK · CASE FILE 001</div>
-          <h1>Ada yang janggal.<br><em>Kamu menyadarinya?</em></h1>
-          <p>Enam misteri kecil. Beberapa petunjuk. Satu jawaban yang paling masuk akal. Ambil waktu sebentar dan buktikan instingmu.</p>
+          <p class="eyebrow"><span class="eyebrow-dot"></span> THE ENDLESS MYSTERY CLUB</p>
+          <h1>Kasus baru.<br><em>Insting yang sama?</em></h1>
+          <p>Setiap kasus dirakit dari tersangka, alibi, jejak, dan garis waktu yang berbeda. Periksa bukti, interogasi orang-orangnya, lalu temukan cerita yang paling masuk akal.</p>
           <div class="hero-actions">
-            <button class="button button-primary" id="dailyBtn">Buka kasus hari ini <span aria-hidden="true">↗</span></button>
-            <button class="button button-quiet" id="browseBtn">Lihat semua kasus <span aria-hidden="true">↓</span></button>
+            <button class="button button-primary" id="dailyBtn">🗓️ Kasus harian</button>
+            <button class="button button-secondary" id="endlessBtn">Kasus baru <span aria-hidden="true">↗</span></button>
+            <button class="button button-ghost" id="shareCaseBtn">Bagikan kasus</button>
+          </div>
+          <div class="hero-options">
+            <label for="difficultySelect">Kompleksitas kasus</label>
+            <select id="difficultySelect">
+              <option value="auto">Acak</option>
+              <option value="easy">Santai · 3 tersangka</option>
+              <option value="medium">Menengah · 4 tersangka</option>
+              <option value="hard">Rumit · 5 tersangka</option>
+            </select>
+            <span class="seed-chip" id="caseSeedLabel">SEED —</span>
           </div>
         </div>
         <div class="hero-art" aria-hidden="true">
-          <div class="art-paper paper-back"></div><div class="art-paper paper-front">
-            <div class="paper-top"><span></span><span></span><span></span><b>CASE NOTE</b></div>
-            <div class="magnifier"><i></i></div>
-            <div class="art-scribble scribble-one"></div><div class="art-scribble scribble-two"></div><div class="art-scribble scribble-three"></div>
-            <div class="stamp">CONFIDENTIAL</div>
-          </div>
-          <span class="art-spark spark-one">✳</span><span class="art-spark spark-two">✦</span><span class="art-number">#?</span>
+          <div class="orbit orbit-a"></div><div class="orbit orbit-b"></div>
+          <div class="case-file file-back"><span>FIELD NOTES</span><i></i><i></i><i></i></div>
+          <div class="case-file file-front"><div class="file-header"><span>CASE FILE</span><b>?</b></div><div class="magnifier"><span></span></div><div class="file-lines"><i></i><i></i><i></i></div><div class="file-stamp">OPEN</div></div>
+          <span class="floating-glyph glyph-a">✳</span><span class="floating-glyph glyph-b">✦</span><span class="floating-glyph glyph-c">?!</span>
         </div>
+        <div class="hero-bottom"><span><b id="caseCountLabel">∞</b> kombinasi kasus yang bisa dirakit</span><span class="theme-note" id="themeNote">☕ Suasana cozy</span></div>
       </section>
 
       <section class="stats-strip" aria-label="Statistik detektif">
-        <div class="stat-item"><span class="stat-icon">▣</span><div><strong id="solvedCount">0 <small>/ 6</small></strong><span>kasus terpecahkan</span></div></div>
-        <div class="stat-item"><span class="stat-icon">✦</span><div><strong id="bestScore">—</strong><span>skor terbaik</span></div></div>
+        <div class="stat-item"><span class="stat-icon">▣</span><div><strong id="solvedCount">0</strong><span>kasus dipecahkan</span></div></div>
+        <div class="stat-item"><span class="stat-icon">✦</span><div><strong id="bestScore">—</strong><span>kasus skor 90+</span></div></div>
         <div class="stat-item"><span class="stat-icon">◎</span><div><strong id="rankLabel">Detektif Magang</strong><span>peringkatmu</span></div></div>
       </section>
 
       <div class="content-layout">
         <section class="main-column" id="caseView" aria-live="polite">
           <div class="section-heading">
-            <div><p class="eyebrow">ON YOUR DESK</p><h2 id="sectionTitle">Kasus hari ini</h2></div>
-            <span class="date-chip" id="todayLabel">HARI INI</span>
+            <div><p class="eyebrow">YOUR CURRENT CASE</p><h2 id="sectionTitle">Berkas yang sedang dibuka</h2></div>
+            <span class="date-chip" id="todayLabel">KASUS BARU</span>
           </div>
 
           <article class="case-card" id="caseCard">
             <div class="case-banner" id="caseBanner">
-              <div class="case-banner-top"><span class="case-id" id="caseNumber">CASE 001</span><span class="difficulty" id="caseDifficulty">MUDAH</span></div>
-              <div class="case-illustration" id="caseIllustration" aria-hidden="true"><span class="illustration-orbit orbit-a"></span><span class="illustration-orbit orbit-b"></span><span class="illustration-main">🍩</span><span class="illustration-note note-a">?</span><span class="illustration-note note-b">!</span><span class="illustration-squiggle"></span></div>
-              <div class="case-banner-bottom"><span id="caseLocation">Ruang istirahat</span><span>◷ 1–2 MENIT</span></div>
+              <div class="case-banner-top"><span class="case-id" id="caseNumber">CASE-00000</span><span class="difficulty" id="caseDifficulty">SEDANG</span></div>
+              <div class="case-illustration" aria-hidden="true"><span class="illustration-orbit orbit-a"></span><span class="illustration-orbit orbit-b"></span><span class="illustration-main" id="caseIllustration">🕵️</span><span class="illustration-note note-a">?</span><span class="illustration-note note-b">!</span><span class="illustration-squiggle"></span></div>
+              <div class="case-banner-bottom"><span id="caseLocation">Lokasi misteri</span><span id="caseMood">☕ COZY</span></div>
             </div>
             <div class="case-body">
-              <div class="case-kicker"><span class="live-dot"></span><span id="caseType">KASUS MINI</span><span class="dot-separator">•</span><span id="caseSolvedTag">BELUM DIPECAHKAN</span></div>
-              <h3 id="caseTitle">Siapa mengambil donat terakhir?</h3>
-              <p class="case-premise" id="casePremise">Satu donat cokelat hilang tepat sebelum rapat. Tiga orang punya cerita berbeda.</p>
-              <div class="case-objective"><span class="objective-icon">⌁</span><span><strong>Misi kamu</strong><br><span id="caseObjective">Cari tahu siapa yang berbohong dengan menghubungkan petunjuk.</span></span></div>
+              <div class="case-kicker"><span class="live-dot"></span><span id="caseType">MISTERI MINI</span><span class="dot-separator">•</span><span id="caseSolvedTag">BELUM DIPECAHKAN</span></div>
+              <h3 id="caseTitle">Kasus sedang dirakit...</h3>
+              <p class="case-premise" id="casePremise">Menyusun timeline, tersangka, dan petunjuk.</p>
+              <div class="case-objective"><span class="objective-icon">⌁</span><span><strong>Misi kamu</strong><br><span id="caseObjective">Temukan kesimpulan yang paling didukung bukti.</span></span></div>
+              <div class="case-meta-row"><span>⏱ <b id="estimatedTime">1–3 menit</b></span><span>👤 <b id="suspectCountLabel">3 tersangka</b></span><span>🧩 <b id="clueCount">0/0 petunjuk</b></span></div>
+
               <div class="divider-line"></div>
-              <div class="section-heading compact"><div><p class="eyebrow">EVIDENCE BOARD</p><h4>Petunjuk yang ditemukan <span id="clueCount">0/3</span></h4></div><span class="hint-label">Baca baik-baik</span></div>
+              <div class="section-heading compact"><div><p class="eyebrow">EVIDENCE BOARD</p><h4>Periksa petunjuk</h4></div><span class="hint-label">Klik untuk membuka</span></div>
               <div class="clue-grid" id="clueGrid"></div>
+
               <div class="suspect-heading"><div><p class="eyebrow">PERSONS OF INTEREST</p><h4>Siapa yang kamu curigai?</h4></div><span class="suspect-instruction">Pilih satu tersangka</span></div>
               <div class="suspect-grid" id="suspectGrid"></div>
               <div class="accuse-row" id="accuseRow">
-                <div class="selected-suspect-note" id="selectedSuspectNote">Pilih tersangka setelah memeriksa petunjuk.</div>
-                <button class="button button-primary accuse-button" id="accuseBtn" disabled>Ajukan tuduhan <span>↗</span></button>
+                <div class="selected-suspect-note" id="selectedSuspectNote">Baca bukti, pilih tersangka, lalu ajukan tuduhan.</div>
+                <div class="accuse-actions"><button class="button button-quiet dark-quiet" id="hintBtn">Minta petunjuk <span>−15 poin</span></button><button class="button button-primary accuse-button" id="accuseBtn" disabled>Ajukan tuduhan <span>↗</span></button></div>
               </div>
+              <div class="hint-panel" id="hintPanel" hidden></div>
               <div class="feedback-panel" id="feedbackPanel" hidden></div>
+              <button class="button button-ghost reveal-solution" id="revealSolutionBtn" hidden>Ungkap solusi (tanpa XP)</button>
+
+              <section class="interrogation panel-inner" id="interrogationPanel">
+                <div class="interrogation-head"><div><p class="eyebrow">INTERROGATION ROOM</p><h4>Interogasi tersangka</h4><p>Pilih orang dan ajukan pertanyaan. Nada jawabannya bisa mencurigakan, tetapi bukti tetap lebih penting dari gaya bicara.</p></div><span class="interrogation-icon">🎙️</span></div>
+                <label class="field-label" for="interrogationSuspect">Siapa yang ingin kamu tanya?</label>
+                <select id="interrogationSuspect"></select>
+                <div class="question-grid" id="questionGrid"></div>
+                <div class="dialogue-output" id="dialogueOutput" aria-live="polite"><span class="dialogue-label">CATATAN INTEROGASI</span><p>Pilih pertanyaan untuk mulai berbicara dengan tersangka.</p></div>
+              </section>
             </div>
           </article>
 
@@ -95,44 +133,43 @@
             <div class="result-icon" id="resultIcon">✓</div>
             <div class="result-copy"><p class="eyebrow" id="resultEyebrow">CASE CLOSED</p><h3 id="resultTitle">Kasus terpecahkan!</h3><p id="resultDescription"></p></div>
             <div class="result-score"><strong id="resultScore">+0</strong><span>poin XP</span></div>
-            <div class="result-actions"><button class="button button-primary" id="nextCaseBtn">Kasus berikutnya <span>→</span></button><button class="button button-quiet" id="shareResultBtn">Bagikan hasil ↗</button><button class="button button-quiet" id="replayBtn">Main ulang</button></div>
+            <div class="result-actions"><button class="button button-primary" id="nextCaseBtn">Kasus berikutnya <span>→</span></button><button class="button button-ghost" id="shareResultBtn">Bagikan hasil ↗</button><button class="button button-ghost" id="replayBtn">Ulangi kasus</button></div>
             <div class="solution-box" id="solutionBox"><strong>Rekonstruksi kejadian</strong><p id="solutionText"></p></div>
           </section>
         </section>
 
         <aside class="side-column">
           <section class="side-card panel archive-card" id="archiveSection">
-            <div class="side-card-heading"><div><p class="eyebrow">CASE ARCHIVE</p><h3>Arsip kasus</h3></div><span class="archive-count" id="archiveCount">06</span></div>
-            <p class="side-intro">Pilih misteri singkat lain. Setiap kasus punya jawaban yang bisa kamu buktikan.</p>
+            <div class="side-card-heading"><div><p class="eyebrow">YOUR CASE SHELF</p><h3>Kasus terbaru</h3></div><span class="archive-count" id="archiveCount">00</span></div>
+            <p class="side-intro">Kasus yang pernah kamu buka tersimpan di perangkat ini. Buka lagi untuk membandingkan analisismu.</p>
             <div id="caseArchive" class="case-archive"></div>
+            <button class="button button-outline full-width" id="footerNextBtn">Rakit kasus baru ↗</button>
           </section>
           <section class="side-card panel rank-card">
             <div class="rank-top"><span class="rank-badge" id="rankBadge">✦</span><div><p class="eyebrow">DETECTIVE STATUS</p><h3 id="rankTitle">Detektif Magang</h3></div></div>
-            <div class="rank-progress-head"><span>Langkah menuju level berikutnya</span><strong id="rankProgressLabel">0 / 100 XP</strong></div>
+            <div class="rank-progress-head"><span>Menuju peringkat berikutnya</span><strong id="rankProgressLabel">0 / 30 XP</strong></div>
             <div class="progress-track"><span id="rankProgressBar"></span></div>
-            <p class="rank-footnote" id="rankFootnote">Setiap kasus yang kamu pecahkan menambah reputasi.</p>
+            <p class="rank-footnote" id="rankFootnote">Amati detail, cocokkan bukti, lalu simpulkan.</p>
           </section>
-          <section class="side-card quote-card">
-            <span class="quote-mark">“</span><blockquote>Detail kecil sering berteriak lebih keras daripada pengakuan besar.</blockquote><span class="quote-credit">— Catatan Detektif #01</span>
-            <div class="quote-stamp">OBSERVE<br>CONNECT<br>DEDUCE</div>
+          <section class="side-card panel daily-card">
+            <div class="daily-card-icon">🗓️</div><div><p class="eyebrow">DAILY MYSTERY</p><h3>Satu kasus untuk semua</h3><p>Kasus harian memakai seed tanggal UTC yang sama, jadi hasilnya dapat dibandingkan dengan teman.</p><button class="text-button" id="dailySideBtn">Buka kasus hari ini ↗</button></div>
           </section>
-          <div class="privacy-note"><span>♧</span><p>Progres tersimpan di browser ini. Tidak perlu akun, dan tidak ada jawaban yang dikirim ke server.</p></div>
+          <section class="quote-card" id="quoteCard"><span class="quote-mark">“</span><blockquote id="quoteText">Detail kecil sering bicara lebih jujur daripada ingatan.</blockquote><span class="quote-credit" id="quoteCredit">CATATAN DETEKTIF</span><div class="quote-stamp">OBSERVE<br>CONNECT<br>DEDUCE</div></section>
+          <div class="privacy-note"><span>♧</span><p>Progres tersimpan di browser ini. Tidak perlu akun, dan tidak ada data permainan yang dikirim ke server.</p></div>
         </aside>
       </div>
-
-      <section class="footer-promo"><span class="promo-icon">✦</span><div><strong>Punya 60 detik lagi?</strong><p>Kasus-kasus ini pendek. Cara berpikirmu yang membuatnya menarik.</p></div><button class="button button-outline" id="footerNextBtn">Pilih kasus lain ↗</button></section>
     </main>
-    <footer class="footer"><span>SEBENTAR, DETEKTIF! <span class="footer-dot">●</span> MINI MYSTERY CLUB</span><span>Dibuat untuk rasa penasaran, bukan tuduh-menuduh sungguhan.</span></footer>
+    <footer class="footer"><span>SEBENTAR, DETEKTIF! <span class="footer-dot">●</span> ENDLESS MYSTERY CLUB</span><span>Kasus fiktif untuk hiburan. Periksa logika, bukan menuduh orang sungguhan.</span></footer>
   </div>
 
   <dialog id="howToDialog" class="modal">
     <form method="dialog" class="modal-close-row"><span class="eyebrow">FIELD GUIDE</span><button class="icon-button" aria-label="Tutup">×</button></form>
-    <div class="modal-icon">🕵️</div><h2>Jadi detektif dalam 3 langkah.</h2>
-    <div class="guide-step"><span>01</span><div><strong>Periksa bukti</strong><p>Ketuk kartu petunjuk untuk membuka detailnya. Tidak semua bukti punya bobot yang sama.</p></div></div>
-    <div class="guide-step"><span>02</span><div><strong>Hubungkan cerita</strong><p>Baca alibi tiap tersangka. Cari hal yang cocok, yang bertentangan, dan yang tidak bisa dijelaskan.</p></div></div>
-    <div class="guide-step"><span>03</span><div><strong>Ajukan tuduhan</strong><p>Pilih tersangka dan ajukan tuduhan. Jawaban salah tidak mengakhiri kasus, tetapi memengaruhi skor.</p></div></div>
-    <p class="modal-tip">Tip: kamu bebas membaca semua petunjuk. Skor lebih tinggi kalau bisa menyimpulkan dengan sedikit bantuan.</p>
-    <button class="button button-primary modal-done" id="closeGuideBtn">Siap, mulai menyelidiki</button>
+    <div class="modal-icon">🕵️</div><h2>Jadi detektif dalam beberapa langkah.</h2>
+    <div class="guide-step"><span>01</span><div><strong>Periksa bukti</strong><p>Buka kartu petunjuk dan cari waktu, jejak, serta catatan yang dapat diverifikasi.</p></div></div>
+    <div class="guide-step"><span>02</span><div><strong>Interogasi</strong><p>Pilih tersangka dan ajukan pertanyaan. Jawaban bisa menambah konteks, tetapi belum tentu membuktikan kesalahan.</p></div></div>
+    <div class="guide-step"><span>03</span><div><strong>Susun kesimpulan</strong><p>Pilih tersangka yang paling cocok dengan setidaknya dua bukti independen. Tebakan salah dan petunjuk bantuan mengurangi skor.</p></div></div>
+    <p class="modal-tip">Daily Mystery sama untuk semua pemain pada tanggal UTC yang sama. Endless Mode merakit kasus dari seed yang bisa dibagikan dan dimainkan ulang.</p>
+    <button class="button button-primary modal-done" id="closeGuideBtn">Oke, mulai menyelidiki</button>
   </dialog>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 </body>

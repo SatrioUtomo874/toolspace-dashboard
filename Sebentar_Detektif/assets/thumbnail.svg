@@ -1,6 +1,24 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360">
-  <defs><linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#f3e4cc"/><stop offset="1" stop-color="#dfc5a2"/></linearGradient><filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#584935" flood-opacity=".18"/></filter></defs>
-  <rect width="640" height="360" rx="28" fill="#203b39"/><circle cx="535" cy="51" r="145" fill="none" stroke="#668d78" stroke-width="1" opacity=".6"/><circle cx="535" cy="51" r="111" fill="none" stroke="#668d78" stroke-width="1" opacity=".35"/>
-  <g transform="translate(117 43) rotate(-6 196 128)" filter="url(#shadow)"><rect width="395" height="250" rx="10" fill="url(#bg)"/><rect x="18" y="17" width="359" height="26" rx="4" fill="#fff9ed"/><circle cx="31" cy="30" r="3.5" fill="#c8b9a3"/><circle cx="44" cy="30" r="3.5" fill="#c8b9a3"/><circle cx="57" cy="30" r="3.5" fill="#c8b9a3"/><text x="361" y="34" text-anchor="end" font-family="monospace" font-size="10" fill="#8c806d" letter-spacing="2">CASE FILE</text><circle cx="198" cy="130" r="57" fill="#fff9ed" stroke="#2b6b59" stroke-width="9"/><circle cx="198" cy="130" r="32" fill="#e2b17d"/><path d="M181 138c5-20 29-20 34 0" fill="none" stroke="#6c4a2d" stroke-width="5" stroke-linecap="round"/><circle cx="188" cy="119" r="4" fill="#6c4a2d"/><circle cx="209" cy="119" r="4" fill="#6c4a2d"/><path d="M240 171l37 37" stroke="#2b6b59" stroke-width="15" stroke-linecap="round"/><path d="M42 84h68M42 101h47M42 118h58" stroke="#bca88d" stroke-width="5" stroke-linecap="round"/><rect x="290" y="78" width="67" height="68" rx="5" fill="#f9eee0" stroke="#bd8a5e" stroke-width="2"/><text x="323" y="118" text-anchor="middle" font-family="Georgia" font-size="37" fill="#bd6955">?</text><path d="M42 181h79M42 195h100M42 209h66" stroke="#bca88d" stroke-width="5" stroke-linecap="round"/><g transform="translate(274 180) rotate(-9)"><rect width="89" height="31" rx="3" fill="none" stroke="#bb6253" stroke-width="2.4"/><text x="44.5" y="19" text-anchor="middle" font-family="monospace" font-size="9" letter-spacing="1.1" fill="#bb6253">TOP SECRET</text></g></g>
-  <text x="36" y="323" font-family="Georgia,serif" font-weight="bold" font-size="27" fill="#fff8ec">SEBENTAR, DETEKTIF!</text><text x="38" y="343" font-family="monospace" font-size="10" letter-spacing="2" fill="#a8c9b7">OBSERVE · CONNECT · DEDUCE</text><text x="595" y="324" text-anchor="end" font-family="monospace" font-size="20" fill="#e4ad79">#01</text>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#242a43"/><stop offset=".55" stop-color="#70516d"/><stop offset="1" stop-color="#e78d87"/></linearGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff8eb"/><stop offset="1" stop-color="#f2d8ad"/></linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="14" stdDeviation="13" flood-color="#111521" flood-opacity=".35"/></filter>
+  </defs>
+  <rect width="640" height="360" rx="28" fill="url(#bg)"/>
+  <g fill="none" stroke="#ffffff" opacity=".13"><circle cx="526" cy="64" r="153"/><circle cx="526" cy="64" r="121"/><circle cx="526" cy="64" r="89"/></g>
+  <g transform="translate(94 44) rotate(-7 205 132)" filter="url(#shadow)">
+    <rect width="415" height="258" rx="12" fill="#d8b783" transform="translate(17 10) rotate(7 205 129)"/>
+    <rect width="415" height="258" rx="12" fill="url(#paper)"/>
+    <rect x="20" y="18" width="375" height="29" rx="5" fill="#ffffff" opacity=".78"/>
+    <circle cx="34" cy="32" r="4" fill="#d7b994"/><circle cx="48" cy="32" r="4" fill="#d7b994"/><circle cx="62" cy="32" r="4" fill="#d7b994"/>
+    <text x="382" y="36" text-anchor="end" font-family="monospace" font-size="10" letter-spacing="2" fill="#887b69">CASE FILE / OPEN</text>
+    <path d="M35 77h98M35 93h78M35 109h88M35 175h98M35 191h76M35 207h88" stroke="#c7b89f" stroke-width="5" stroke-linecap="round"/>
+    <rect x="274" y="71" width="90" height="105" rx="8" fill="#e6e7d9" stroke="#c2c8b5" stroke-width="2"/>
+    <circle cx="319" cy="119" r="30" fill="#fffdf5" stroke="#2a6f62" stroke-width="8"/>
+    <path d="M342 142l28 28" stroke="#2a6f62" stroke-width="11" stroke-linecap="round"/>
+    <circle cx="310" cy="111" r="4" fill="#e7a466"/><path d="M305 128q14 12 27 0" fill="none" stroke="#d67c67" stroke-width="3" stroke-linecap="round"/>
+    <g transform="translate(230 201) rotate(-7)"><rect width="141" height="31" rx="4" fill="none" stroke="#bb5960" stroke-width="2.5"/><text x="70.5" y="20" text-anchor="middle" font-family="monospace" font-size="11" letter-spacing="2" fill="#bb5960">MYSTERY!</text></g>
+  </g>
+  <g font-family="'Trebuchet MS',sans-serif" fill="#fffaf0"><text x="36" y="321" font-size="27" font-weight="800" letter-spacing="-.5">SEBENTAR, DETEKTIF!</text><text x="38" y="343" font-family="monospace" font-size="10" letter-spacing="2" fill="#f9d1b0">ENDLESS MYSTERY CLUB · FOLLOW THE CLUES</text></g>
+  <text x="594" y="324" text-anchor="end" font-family="Georgia,serif" font-size="34" font-weight="bold" fill="#ffd17b">?!</text>
 </svg>
