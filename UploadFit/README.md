@@ -19,7 +19,7 @@ UploadFit adalah tool persiapan dokumen yang fleksibel: unggah beberapa PDF dan 
 1. Ekstrak project ini.
 2. Upload folder `UploadFit/` langsung ke root repository `SatrioUtomo874/toolspace-dashboard`, sejajar dengan tools lain.
 3. Commit ke branch `main` dan deploy seperti biasa.
-4. `index.html` berisi metadata katalog otomatis. Jangan edit `tools.json` secara manual. Status awal kartu sengaja `building` sampai uji browser untuk pemrosesan file selesai. Setelah uji berhasil, ubah `toolspace:status` menjadi `ready` dan `toolspace:status-label` menjadi `Siap digunakan`, lalu commit lagi.
+4. `index.html` berisi metadata katalog otomatis. Jangan edit `tools.json` secara manual. Kartu sengaja berstatus `ready` agar dapat dibuka dari Toolspace untuk uji beta. Label kartu tetap `Beta · siap diuji` sampai alur PDF, gambar, dan ZIP sudah diperiksa di browser. Setelah pengujian selesai, ubah `toolspace:status-label` menjadi `Siap digunakan` bila memang telah layak.
 
 ## Cara menggunakan
 
