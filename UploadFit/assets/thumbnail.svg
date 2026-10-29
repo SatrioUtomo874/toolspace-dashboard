@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-label="UploadFit file preparation">
+  <rect width="640" height="400" rx="34" fill="#edf5ef"/>
+  <rect x="75" y="48" width="490" height="304" rx="24" fill="#fff" stroke="#d9e7dd" stroke-width="3"/>
+  <rect x="104" y="77" width="432" height="48" rx="12" fill="#f6faf6"/>
+  <rect x="122" y="91" width="20" height="20" rx="6" fill="#246e54"/>
+  <path d="M132 106V95m0 0-4 4m4-4 4 4" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <rect x="153" y="93" width="107" height="8" rx="4" fill="#29483a"/>
+  <rect x="153" y="106" width="74" height="5" rx="2.5" fill="#adc5b5"/>
+  <rect x="104" y="145" width="432" height="69" rx="12" fill="#fbfdfb" stroke="#b8cfc0" stroke-width="2" stroke-dasharray="7 7"/>
+  <circle cx="140" cy="179" r="18" fill="#e5f2e9"/>
+  <path d="M140 187v-16m0 0-6 6m6-6 6 6m-17 10v4h22v-4" fill="none" stroke="#246e54" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="171" y="167" width="190" height="8" rx="4" fill="#345445"/>
+  <rect x="171" y="182" width="136" height="6" rx="3" fill="#b1c6b8"/>
+  <rect x="104" y="229" width="432" height="50" rx="11" fill="#f6faf6"/>
+  <rect x="122" y="244" width="21" height="21" rx="5" fill="#e5f2e9"/>
+  <path d="m127 254 4 4 7-8" stroke="#246e54" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="154" y="245" width="115" height="6" rx="3" fill="#4d6558"/>
+  <rect x="154" y="256" width="80" height="5" rx="2.5" fill="#b7c7bc"/>
+  <rect x="449" y="245" width="65" height="19" rx="9" fill="#deefe3"/>
+  <circle cx="461" cy="254.5" r="3" fill="#246e54"/>
+  <rect x="470" y="252" width="34" height="5" rx="2.5" fill="#246e54"/>
+  <rect x="104" y="294" width="196" height="35" rx="10" fill="#246e54"/>
+  <path d="m126 311 4 4 8-9" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="148" y="308" width="119" height="6" rx="3" fill="#fff"/>
+</svg>
