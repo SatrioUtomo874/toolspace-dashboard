@@ -1,5 +1,9 @@
 # FileKit — All-in-One File Tools
 
+## Bug fix — PDF to JPG / PDF to PNG
+
+The PDF page rendering ZIP export now creates a JSZip instance before adding page images. This fixes `zip.file is not a function` in the PDF to JPG/PNG tools. The same path still renders one image per PDF page and packages the results into a ZIP. Regression coverage was added in `tests/catalog.test.cjs`.
+
 A browser-first toolbox for everyday file and media tasks. This folder is designed to be added directly to the root of the Toolspace GitHub repository and discovered by `scripts/generate-tools.js` through metadata in `index.html`.
 
 ## Highlights

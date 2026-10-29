@@ -31,6 +31,11 @@ test('Declared actions route to a processing path or explicit limitation', () =>
   for (const action of actions) assert.ok(explicitActions.has(action), `action ${action} must be explicitly accounted for`);
 });
 
+test('PDF to JPG/PNG instantiates JSZip before calling zip.file()', () => {
+  assert.match(app, /const Z=await jsZip\(\),zip=new Z\(\),scale=Number\(getOpt\('scale','1\.5'\)\),mime=t\.action==='pdf-to-jpg'\?'image\/jpeg':'image\/png';/);
+  assert.doesNotMatch(app, /if\(\['pdf-to-jpg','pdf-to-png','pdf-to-text','pdf-ocr'\]\.includes\(t\.action\)\)[\s\S]{0,1000}const zip=await jsZip\(\),scale=/);
+});
+
 test('Required local assets exist', () => {
   for (const file of ['style.css','app.js','core.js','assets/thumbnail.svg','README.md','tests/core.test.cjs']) {
     assert.ok(fs.existsSync(path.join(root,file)), `missing ${file}`);
