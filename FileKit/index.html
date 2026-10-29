@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101720">
+  <title>FileKit — All-in-One File Tools</title>
+  <meta name="description" content="Everyday file tools in one place: convert, compress, organize, inspect, and prepare documents, images, data, audio, and video.">
+  <meta name="toolspace:title" content="FileKit — All-in-One File Tools">
+  <meta name="toolspace:category" content="Productivity">
+  <meta name="toolspace:status" content="ready">
+  <meta name="toolspace:status-label" content="Beta · siap dicoba">
+  <meta name="toolspace:tag" content="PDF · Images · Data · Media">
+  <meta name="toolspace:symbol" content="▦">
+  <meta name="toolspace:art" content="default">
+  <meta name="toolspace:thumbnail" content="assets/thumbnail.svg">
+  <meta name="toolspace:visible" content="true">
+  <link rel="icon" href="assets/thumbnail.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <script defer src="core.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="#home" aria-label="FileKit home">
+        <span class="brand-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" fill="currentColor"/></svg></span>
+        <span><strong>FileKit</strong><small>Everyday File Tools</small></span>
+      </a>
+      <nav class="side-nav" aria-label="Main navigation">
+        <button class="nav-item active" data-view="dashboard"><span class="nav-icon">▦</span> Dashboard</button>
+        <button class="nav-item" data-view="recent"><span class="nav-icon">◷</span> Recent Activity</button>
+        <button class="nav-item" data-view="favorites"><span class="nav-icon">♡</span> Favorites</button>
+      </nav>
+      <div class="side-label">CATEGORIES</div>
+      <nav class="side-nav category-nav" id="sideCategories" aria-label="Tool categories"></nav>
+      <div class="sidebar-bottom">
+        <div class="privacy-note"><span class="privacy-dot"></span><div><strong>Browser-first privacy</strong><small>Files stay on your device for most tools.</small></div></div>
+        <div class="profile"><span class="profile-avatar">F</span><div><strong>FileKit</strong><small>Beta · Free tools</small></div></div>
+      </div>
+    </aside>
+
+    <main class="main-content" id="home">
+      <header class="mobile-topbar">
+        <button class="icon-button" id="menuToggle" aria-label="Open navigation">☰</button>
+        <a class="brand compact" href="#home"><span class="brand-mark"><svg viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" fill="currentColor"/></svg></span><strong>FileKit</strong></a>
+        <button class="icon-button" id="mobileSearch" aria-label="Search tools">⌕</button>
+      </header>
+      <section class="welcome-row">
+        <div>
+          <p class="eyebrow">YOUR DIGITAL TOOLBOX</p>
+          <h1 id="welcomeTitle">Every file. <span>Under control.</span></h1>
+          <p class="welcome-subtitle">Small, practical tools for everyday files. Pick a task and get it done.</p>
+        </div>
+        <div class="status-pill"><span class="live-dot"></span> Browser tools ready</div>
+      </section>
+
+      <section class="search-section" id="searchSection">
+        <label class="search-box" for="toolSearch"><span class="search-icon">⌕</span><input id="toolSearch" type="search" placeholder="Search tools: Compress PDF, Resize Image, JSON..." autocomplete="off"><kbd>Ctrl K</kbd></label>
+      </section>
+      <section class="filters" id="categoryFilters" aria-label="Filter by category"></section>
+
+      <section class="content-section" id="toolSection">
+        <div class="section-heading"><div><h2 id="gridTitle">Popular Tools</h2><p id="gridSubtitle">Useful tools, ready when you are.</p></div><span class="result-count" id="resultCount"></span></div>
+        <div class="tool-grid" id="toolGrid"></div>
+        <div class="empty-state hidden" id="emptyState"><span class="empty-icon">⌕</span><h3>No tools found</h3><p>Try another keyword or category.</p></div>
+      </section>
+
+      <section class="content-section recent-section" id="recentSection">
+        <div class="section-heading"><div><h2>Recent Activity</h2><p>Your latest local processing history.</p></div><button class="text-button" id="clearHistory">Clear history</button></div>
+        <div class="table-wrap"><table class="activity-table"><thead><tr><th>FILE NAME</th><th>TOOL USED</th><th>DATE</th><th>STATUS</th><th>ACTION</th></tr></thead><tbody id="activityBody"><tr><td colspan="5" class="empty-table">No recent activity yet. Choose a tool to get started.</td></tr></tbody></table></div>
+      </section>
+      <footer class="footer"><span>FileKit · All-in-One File Tools</span><span>Runs locally where possible · Always review generated files</span></footer>
+    </main>
+  </div>
+
+  <div class="modal-backdrop hidden" id="toolModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="tool-modal">
+      <header class="modal-header">
+        <div class="modal-tool-icon" id="modalIcon">▦</div>
+        <div class="modal-heading"><h2 id="modalTitle">Tool</h2><p id="modalDescription"></p></div>
+        <button class="icon-button close-modal" id="closeModal" aria-label="Close tool">×</button>
+      </header>
+      <div class="modal-body">
+        <div class="tool-note hidden" id="toolNotice"></div>
+        <div id="inputArea"></div>
+        <div id="optionArea"></div>
+        <div class="action-row"><button class="primary-button" id="runTool"><span>Run tool</span><span aria-hidden="true">→</span></button><button class="secondary-button hidden" id="resetTool">Reset</button></div>
+        <div class="progress-wrap hidden" id="progressWrap"><div class="progress-label"><span id="progressText">Processing…</span><span id="progressPercent">0%</span></div><div class="progress-track"><div id="progressBar"></div></div></div>
+        <div class="output-area hidden" id="outputArea"><div class="output-heading"><h3>Results</h3><button class="text-button" id="clearOutput">Clear</button></div><div id="outputContent"></div></div>
+      </div>
+      <footer class="modal-footer"><span><span class="privacy-dot"></span> Files are processed in your browser when supported.</span><span id="fileCountLabel"></span></footer>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
